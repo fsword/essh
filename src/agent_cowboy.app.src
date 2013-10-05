@@ -1,12 +1,14 @@
 {application, agent_cowboy,
  [
-  {description, ""},
+  {description, "agent by cowboy"},
   {vsn, "1"},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  cowlib,
+                  cowboy
                  ]},
   {mod, { agent_cowboy_app, []}},
-  {env, []}
+  {env, [{http_port, 8002}]}
  ]}.
