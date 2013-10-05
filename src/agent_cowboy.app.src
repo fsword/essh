@@ -1,0 +1,12 @@
+{application, agent_cowboy,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { agent_cowboy_app, []}},
+  {env, []}
+ ]}.
