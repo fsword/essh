@@ -39,7 +39,10 @@
 #### agent api
 
 * create channel
-> POST http://[agent\_host][:port]/api/channels
+> URI:
+>   POST http://[agent\_host][:port]/api/channels
+> Description:
+>   
 > Request Params: 
 >   required: user, host
 >   optional: port, password | ssh\_key
@@ -47,15 +50,77 @@
 >   channel\_id, token
 
 * send command
-> PUT http://[agent\_host][:port]/api/channels/$channel\_id
+> URI:
+>   PUT http://[agent\_host][:port]/api/channels/$channel\_id
+> Description:
+>   put the command to command queue of the channel, and agent
+> will execute every command on queue when machine is normal.
+>   each command is execute over ssh, all stdout/stderr will be
+> saved on redis store.
 > Request Params:
 >   required: channel\_id, token, command\_line\_string
 > Response:
 >   PID, PPID
 
 * get out/err
-> ws://[agent\_host][:port]/websocket
+> URI:
+>   ws://[agent\_host][:port]/websocket
+> Description:
+>   
 > Request Params:
 >   required: channel\_id, token, command\_line\_string
 >   optional: line\_no( empty means `from now` )
 > Response: ...
+
+### supervisor/worker tree
+
+                                 agent_cowboy_app
+                                     /    \
+                                    /      \
+                        agent_ssh_sup       agent_cowboy_sup
+                          /   |     \
+                         /    |      \
+                        /     |       \
+                       /      |        \
+           agent_channel  agent_id_gen  agent_client_sup
+                                             |
+                                             |
+                                        agent_client
+
+### module design
+
+#### agent\_cowboy\_app
+This module is based on cowboy. It designed as global router.
+
+routes:
+    "/api/[...]         ->  api_handler
+    "/websocket/[...]"  ->  ws_handler
+
+#### handlers 
+
+* api\_handler: used to add web access for the agent.
+* ws\_handler:  used to add websocket support of web pages.
+
+#### agent\_channel
+
+This module managed all channels information.  
+
+Channel information is a mapping like:
+
+    {user,host} -> {channelid,token}
+
+#### agent\_id\_gen
+
+This module make global id. 
+
+It used for generate unique key like sequence id of database.
+
+It is based on process dict.
+
+#### agent\_client
+
+This module managed ssh\_clients.
+
+#### store\_service
+
+This module is designed to supply a common api for storage( eg: redis, mnesia )

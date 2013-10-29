@@ -2,11 +2,8 @@
 
 -behaviour(gen_server).
 
-%% API
--export([start_link/0]).
--export([next/1]).
+-export([start_link/0, next/1, fetch/1]).
 
-%% Gen Server callbacks
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
 
@@ -16,14 +13,14 @@ start_link() ->
 next(Key) when is_atom(Key) ->
   gen_server:call(?MODULE, {next, Key}).
 
-get(Key) when is_atom(Key) ->
+fetch(Key) when is_atom(Key) ->
   gen_server:call(?MODULE, {get, Key}).
 
 init([]) ->
   {ok, none}.
 
 handle_call({get,Key}, _From, State) ->
-  get(Key);
+  {reply, get(Key), State};
 handle_call({next,Key}, _From, State) ->
   case get(Key) of
     undefined -> 
