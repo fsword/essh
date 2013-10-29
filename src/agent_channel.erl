@@ -27,11 +27,13 @@ create(User, Host, Port, Password) ->
   ChannelId = agent_id_gen:next(channel),
   agent_client_sup:add_client(ChannelId,[User,Host,Port]),
   Result = agent_client:conn(ChannelId, Password),
-%%  case Result of
-%%    {ok, _, _} -> agent_client_sup:remove_client(ChannelId);
-%%    _ -> ok
-%%  end,
-  Result.
+  case Result of
+    ok -> 
+      ChannelId;
+    Other ->
+      agent_client_sup:remove_client(ChannelId),
+      Other
+  end.
 
 %% ===================================================================
 %% Supervisor callbacks

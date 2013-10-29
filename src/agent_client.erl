@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/2]).
--export([conn/2, exec/2]).
+-export([conn/2, exec/2, stop/1]).
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
 
@@ -19,11 +19,12 @@ start_link(ChannelId, WhoAmI ) ->
   gen_server:start_link({local, ?SERVER(ChannelId)}, ?MODULE, WhoAmI,[]).
 
 conn(ChannelId, Password) ->
-  %% TODO try to conn client by args
-  %% if it fail, then release client immediately
-  %% return result according to module api_handler#L30
   error_logger:info_msg("conn: ~p, ~p~n", [ChannelId,Password]),
   gen_server:call(?SERVER(ChannelId), {conn, Password}).
+
+stop(ChannelId) ->
+  error_logger:info_msg("stop: ~p, ~p~n", [ChannelId]),
+  gen_server:call(?SERVER(ChannelId), stop).
 
 exec(_ChannelId, _Command) -> 
   %% TODO exec Command over channel that ChId indicated
@@ -47,8 +48,10 @@ handle_call({conn,Password}, _From, State=#user_id{host=Host,port=Port}) ->
       {reply, ok, State#user_id{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
-      {reply, Reason, fail}
+      {reply, {error, Reason}, fail}
   end;
+handle_call(stop, _From, State) ->
+  {stop,normal,"stopped",State};
 handle_call(Request, _From, State) ->
   error_logger:info_msg(": ~p", [Request]),
   {reply, none, State}.
@@ -75,7 +78,7 @@ options(Password, User) ->
     {user, User}, 
     {silently_accept_hosts, true},
     {user_interaction, false},
-    {connect_timeout, 10000}
+    {connect_timeout, 2000}
   ],
   case Password of
     none -> Options;
