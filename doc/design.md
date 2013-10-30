@@ -119,8 +119,27 @@ It is based on process dict.
 
 #### agent\_client
 
-This module managed ssh\_clients.
+This module managed ssh clients.
 
 #### store\_service
 
 This module is designed to supply a common api for storage( eg: redis, mnesia )
+
+### agent client 
+
+As a FSM module, agent client will run according the state diagram like:
+
+                           (connected)            (stop)
+     new -----> connecting ----------->  normal ----------> terminated
+                                         |    ∧                 ∧
+                                 (hold)  |    | (continue)      | (stop)
+                                         v    |                 |
+                                         paused ----------------
+
+
+Other commands that agent client can take:
+
+* add cmd: add a command to be execute whatever it has executing command
+* result: get the result for the command
+* clear: clear all rest commands of the client
+* interrupt: kill the command which is executing on the client
