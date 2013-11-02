@@ -16,17 +16,9 @@ start_link() ->
 %% generate a new channel
 %% add client for the channel
 create(User, Host, Port, Password) ->
-  %% generate a channel id
-  %% add a client with the channel id
-  %% try to connect the target server
-  %% if success
-  %%   create channel and save it.
-  %% else
-  %%   return error information.
-  %%
   ChannelId = agent_id_gen:next(channel),
   agent_client_sup:add_client(ChannelId,[User,Host,Port]),
-  Result = agent_client:conn(ChannelId, Password),
+  Result = agent_client:connect(ChannelId, Password),
   case Result of
     ok -> 
       ChannelId;

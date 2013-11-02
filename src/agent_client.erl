@@ -1,33 +1,36 @@
 -module(agent_client).
 
--behaviour(gen_server).
+-behaviour(gen_fsm).
 
 -export([start_link/2]).
--export([conn/2, exec/2, stop/1]).
--export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
--export([code_change/3,terminate/2]).
+-export([connect/2, exec/2, stop/1]).
+-export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
+-export([new/2]).
+-export([code_change/4,terminate/3]).
 
--record(user_id, {user,host,port,conn}).
+-record(data, {user,host,port,conn}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
+%% WhoAmI: [User,Host,Port]
 start_link(ChannelId, WhoAmI ) ->
   error_logger:info_msg("start link: ~p, ~p", [ChannelId, WhoAmI]),
-  gen_server:start_link({local, ?SERVER(ChannelId)}, ?MODULE, WhoAmI,[]).
+  gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, WhoAmI,[]).
 
-conn(ChannelId, Password) ->
+connect(ChannelId, Password) ->
   error_logger:info_msg("conn: ~p, ~p~n", [ChannelId,Password]),
-  gen_server:call(?SERVER(ChannelId), {conn, Password}).
+  gen_fsm:send_event(?SERVER(ChannelId), {connect, Password}).
 
 stop(ChannelId) ->
   error_logger:info_msg("stop: ~p, ~p~n", [ChannelId]),
-  gen_server:call(?SERVER(ChannelId), stop).
+  gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
-exec(_ChannelId, _Command) -> 
-  %% TODO exec Command over channel that ChId indicated
+exec(ChannelId, Command) -> 
+  error_logger:info_msg("exec(~p), ~p~n", [ChannelId,Command]),
+  gen_server:call(?SERVER(ChannelId),{exec,Command}),
   ok.
 
 %% ===================================================================
@@ -37,39 +40,41 @@ exec(_ChannelId, _Command) ->
 init([User,Host,none]) ->
   init([User,Host,22]);
 init([User,Host,Port]) ->
-  State = #user_id{user=User,host=Host,port=Port},
-  {ok, State}.
+  StateData = #data{user=User,host=Host,port=Port},
+  {ok, new, StateData}.
 
-handle_call({conn,Password}, _From, State=#user_id{host=Host,port=Port}) ->
+new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
   error_logger:info_msg("conn: ~p~n", [Password]),
-  Options = options(Password,State#user_id.user),
+  Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
-      {reply, ok, State#user_id{conn=Conn}};
+      {next_state, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
-      {reply, {error, Reason}, fail}
-  end;
-handle_call(stop, _From, State) ->
-  {stop,normal,"stopped",State};
-handle_call(Request, _From, State) ->
-  error_logger:info_msg(": ~p", [Request]),
-  {reply, none, State}.
+      {stop, {error, Reason}, StateData}
+  end.
 
-handle_info(Info, State) ->
+handle_sync_event(stop, _From, _StateName, StateData) ->
+  {stop,normal,"stopped",StateData};
+handle_sync_event(Event, _From, StateName, StateData) ->
+  error_logger:info_msg("~p: ~p", [Event,StateName]),
+  {next_state, StateName, StateData}.
+
+handle_event(Event, StateName, StateData) ->
+  error_logger:info_msg("~p: ~p", [Event,StateName]),
+  {next_state, StateName, StateData}.
+
+handle_info(Info, StateName, StateData) ->
   error_logger:info_msg(": ~p", [Info]),
-  {noreply, State}.
+  {next_state, StateName, StateData}.
 
-handle_cast(Request, State) ->
-  error_logger:info_msg(": ~p", [Request]),
-  {noreply, State}.
+code_change(_OldVsn, StateName, StateData, _Extra) ->
+  {ok, StateName, StateData}.
 
-code_change(_OldVsn, State, _Extra) ->
-  {ok, State}.
-
-terminate(Reason, State) ->
+terminate(Reason, StateName, StateData) ->
   io:format("Reason: ~p~n", [Reason]),
-  io:format("State: ~p~n", [State]),
+  io:format("State: ~p~n", [StateName]),
+  io:format("State: ~p~n", [StateData]),
 
   terminated.
 

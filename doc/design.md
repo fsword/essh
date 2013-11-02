@@ -129,12 +129,12 @@ This module is designed to supply a common api for storage( eg: redis, mnesia )
 
 As a FSM module, agent client will run according the state diagram like:
 
-                           (connected)            (stop)
-     new -----> connecting ----------->  normal ----------> terminated
-                                         |    ∧                 ∧
-                                 (hold)  |    | (continue)      | (stop)
-                                         v    |                 |
-                                         paused ----------------
+          (connected)            (stop)
+     new ------------>  normal ----------> terminated
+                        |    ∧                 ∧
+                (hold)  |    | (continue)      | (stop)
+                        v    |                 |
+                        paused ----------------
 
 
 Other commands that agent client can take:
