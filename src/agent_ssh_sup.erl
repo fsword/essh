@@ -26,6 +26,7 @@ start_link() ->
 init([]) ->
   IdGen     = ?CHILD(agent_id_gen,     worker,     start_link, []),
   Channel   = ?CHILD(agent_channel,    worker,     start_link, []),
+  Redis     = ?CHILD(agent_redis,      worker,     start_link, []),
   ClientSup = ?CHILD(agent_client_sup, supervisor, start_link, []),
-  {ok, { {one_for_one, 5, 10}, [IdGen,Channel,ClientSup]} }.
+  {ok, { {one_for_one, 5, 10}, [IdGen,Channel,Redis,ClientSup]} }.
 

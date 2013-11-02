@@ -8,7 +8,7 @@
 -export([new/2]).
 -export([code_change/4,terminate/3]).
 
--record(data, {user,host,port,conn}).
+-record(data, {user,host,port,conn,cmds=[],handle=none}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
@@ -21,7 +21,6 @@ start_link(ChannelId, WhoAmI ) ->
   gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, WhoAmI,[]).
 
 connect(ChannelId, Password) ->
-  error_logger:info_msg("conn: ~p, ~p~n", [ChannelId,Password]),
   gen_fsm:send_event(?SERVER(ChannelId), {connect, Password}).
 
 stop(ChannelId) ->
@@ -29,9 +28,7 @@ stop(ChannelId) ->
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
 exec(ChannelId, Command) -> 
-  error_logger:info_msg("exec(~p), ~p~n", [ChannelId,Command]),
-  gen_server:call(?SERVER(ChannelId),{exec,Command}),
-  ok.
+  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,Command}).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -44,10 +41,10 @@ init([User,Host,Port]) ->
   {ok, new, StateData}.
 
 new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
-  error_logger:info_msg("conn: ~p~n", [Password]),
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
+      io:format("connetion: ~p", [Conn]),
       {next_state, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
@@ -55,14 +52,15 @@ new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
   end.
 
 handle_sync_event(stop, _From, _StateName, StateData) ->
-  {stop,normal,"stopped",StateData};
-handle_sync_event(Event, _From, StateName, StateData) ->
-  error_logger:info_msg("~p: ~p", [Event,StateName]),
-  {next_state, StateName, StateData}.
+  {stop,normal,"stopped",StateData}.
 
-handle_event(Event, StateName, StateData) ->
-  error_logger:info_msg("~p: ~p", [Event,StateName]),
-  {next_state, StateName, StateData}.
+handle_event({exec, Command}, normal, StateData=#data{cmds=[],handle=none}) ->
+  Handle = spawn(fun() -> agent_run:exec(StateData#data.conn,Command,none) end),
+  {next_state, normal, StateData#data{handle=Handle}};
+%% when cmds is not empty, the current cmd must be not none. 
+handle_event({exec, Command}, StateName, StateData=#data{cmds=Cmds,handle=_Handle}) ->
+  NewCmds = lists:append(Cmds, [Command]),
+  {next_state, StateName, StateData#data{cmds=[NewCmds]}}.
 
 handle_info(Info, StateName, StateData) ->
   error_logger:info_msg(": ~p", [Info]),
