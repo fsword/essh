@@ -1,4 +1,4 @@
--module(agent_channel).
+-module(essh_channel).
 
 -behaviour(gen_server).
 
@@ -17,14 +17,14 @@ start_link() ->
 %% add client for the channel
 create(User, Host, Port, Password) ->
   ChannelId = agent_id_gen:next(channel),
-  agent_client_sup:add_client(ChannelId,[User,Host,Port]),
-  Result = agent_client:connect(ChannelId, Password),
+  essh_client_sup:add_client(ChannelId,[User,Host,Port]),
+  Result = essh_client:connect(ChannelId, Password),
   case Result of
     ok ->
       Token = randchar(12),
       gen_server:call(?MODULE, {add,ChannelId,Token});
     Other ->
-      agent_client_sup:remove_client(ChannelId),
+      essh_client_sup:remove_client(ChannelId),
       Other
   end.
 
@@ -32,7 +32,7 @@ remove(ChannelId, Token) ->
   Result = gen_server:call(?MODULE, {remove,[ChannelId, Token]}),
   case Result of
     true ->
-      agent_client_sup:remove_client(ChannelId);
+      essh_client_sup:remove_client(ChannelId);
     false ->
       false
   end.
@@ -44,8 +44,7 @@ auth(ChannelId, Token) ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init(X) ->
-  error_logger:info_msg("channel init: ~p~n", [X]),
+init([]) ->
   {ok, dict:new()}.
 
 handle_call({auth,{ChannelId, Token}}, _From, Dict) ->

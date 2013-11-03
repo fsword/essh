@@ -26,7 +26,7 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
   {Password, _} = cowboy_req:qs_val(<<"password">>, Req, none),
   {Port, _}     = cowboy_req:qs_val(<<"port">>,     Req, none),
   
-  Result = agent_channel:create(
+  Result = essh_channel:create(
     User,Host,
     Port,
     Password
@@ -44,10 +44,10 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
   end;
 dispatch(<<"PUT">>,  [<<"channels">>,ChId], Req) ->
   {Token, _} = cowboy_req:qs_val(<<"token">>, Req, none),
-  case agent_channel:is_exist(ChId, Token) of
+  case essh_channel:is_exist(ChId, Token) of
     ok -> 
       {Command, _} = cowboy_req:qs_val(<<"command">>, Req, none),
-      {ok, CommandId} = agent_client:exec(ChId, Command),
+      {ok, CommandId} = essh_client:exec(ChId, Command),
       [200, [], <<CommandId>>];
     not_found ->
       [404, [], <<"not found">>];

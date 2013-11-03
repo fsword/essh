@@ -1,4 +1,4 @@
--module(agent_client_sup).
+-module(essh_client_sup).
 
 -behaviour(supervisor).
 
@@ -16,7 +16,7 @@ add_client(ChannelId,WhoAmI) ->
   supervisor:start_child(?MODULE,[ChannelId,WhoAmI]).
 
 remove_client(ChannelId) ->
-  agent_client:stop(ChannelId).
+  essh_client:stop(ChannelId).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -24,12 +24,12 @@ remove_client(ChannelId) ->
 
 init([]) ->
   Client = { 
-    agent_client, 
-    { agent_client, start_link, []},
+    essh_client, 
+    { essh_client, start_link, []},
     transient,
     1000,
     worker, 
-    [agent_client]
+    [essh_client]
   },
   {ok, { {simple_one_for_one, 10, 60}, [Client]} }.
 

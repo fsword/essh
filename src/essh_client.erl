@@ -1,4 +1,4 @@
--module(agent_client).
+-module(essh_client).
 
 -behaviour(gen_fsm).
 
@@ -8,7 +8,7 @@
 -export([new/2]).
 -export([code_change/4,terminate/3]).
 
--record(data, {user,host,port,conn,cmds=[],handle=none}).
+-record(data, {channel,user,host,port,conn,cmds=[],handle=none}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
@@ -18,7 +18,7 @@
 %% WhoAmI: [User,Host,Port]
 start_link(ChannelId, WhoAmI ) ->
   error_logger:info_msg("start link: ~p, ~p", [ChannelId, WhoAmI]),
-  gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, WhoAmI,[]).
+  gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, [ChannelId|WhoAmI],[]).
 
 connect(ChannelId, Password) ->
   gen_fsm:send_event(?SERVER(ChannelId), {connect, Password}).
@@ -34,10 +34,10 @@ exec(ChannelId, Command) ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init([User,Host,none]) ->
-  init([User,Host,22]);
-init([User,Host,Port]) ->
-  StateData = #data{user=User,host=Host,port=Port},
+init([ChannelId,User,Host,none]) ->
+  init([ChannelId,User,Host,22]);
+init([ChannelId,User,Host,Port]) ->
+  StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
 new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
@@ -55,8 +55,8 @@ handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
   {stop,normal,true,StateData}.
 
-handle_event({exec, Command}, normal, StateData=#data{cmds=[],handle=none}) ->
-  Handle = spawn(fun() -> agent_run:exec(StateData#data.conn,Command,none) end),
+handle_event({exec, Command}, normal, StateData=#data{cmds=[],handle=none,channel=ChannelId}) ->
+  Handle = spawn(fun() -> essh_run:exec(StateData#data.conn,Command,ChannelId) end),
   {next_state, normal, StateData#data{handle=Handle}};
 %% when cmds is not empty, the current cmd must be not none. 
 handle_event({exec, Command}, StateName, StateData=#data{cmds=Cmds,handle=_Handle}) ->

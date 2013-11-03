@@ -1,4 +1,4 @@
--module(agent_ssh_sup).
+-module(agent_essh_sup).
 
 -behaviour(supervisor).
 
@@ -24,9 +24,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  IdGen     = ?CHILD(agent_id_gen,     worker,     start_link, []),
-  Channel   = ?CHILD(agent_channel,    worker,     start_link, []),
-  Redis     = ?CHILD(agent_redis,      worker,     start_link, []),
-  ClientSup = ?CHILD(agent_client_sup, supervisor, start_link, []),
+  IdGen     = ?CHILD(agent_id_gen,    worker,     start_link, []),
+  Redis     = ?CHILD(agent_redis,     worker,     start_link, []),
+  Channel   = ?CHILD(essh_channel,    worker,     start_link, []),
+  ClientSup = ?CHILD(essh_client_sup, supervisor, start_link, []),
   {ok, { {one_for_one, 5, 10}, [IdGen,Channel,Redis,ClientSup]} }.
 
