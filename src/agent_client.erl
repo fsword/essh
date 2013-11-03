@@ -52,7 +52,8 @@ new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
   end.
 
 handle_sync_event(stop, _From, _StateName, StateData) ->
-  {stop,normal,"stopped",StateData}.
+  %% TODO store all cmds and terminate ssh connection
+  {stop,normal,true,StateData}.
 
 handle_event({exec, Command}, normal, StateData=#data{cmds=[],handle=none}) ->
   Handle = spawn(fun() -> agent_run:exec(StateData#data.conn,Command,none) end),

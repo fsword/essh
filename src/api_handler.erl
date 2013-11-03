@@ -32,7 +32,7 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
     Password
   ),
   case Result of
-    {ok, ChannelId, Token} ->
+    {ok, [ChannelId, Token]} ->
       [200, [], <<(ChannelId++" "++Token)>>];
     no_host ->
       [404, [], <<"cannot find the host">>];
