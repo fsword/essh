@@ -2,7 +2,7 @@
 
 -behaviour(supervisor).
 
--export([start_link/0,add_client/2,remove_client/1]).
+-export([start_link/0,add_client/2]).
 -export([init/1]).
 
 %% ===================================================================
@@ -14,9 +14,6 @@ start_link() ->
 
 add_client(ChannelId,WhoAmI) ->
   supervisor:start_child(?MODULE,[ChannelId,WhoAmI]).
-
-remove_client(ChannelId) ->
-  essh_client:stop(ChannelId).
 
 %% ===================================================================
 %% Supervisor callbacks

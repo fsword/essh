@@ -1,8 +1,8 @@
--module(essh_channel).
+-module(essh_service).
 
 -behaviour(gen_server).
 
--export([start_link/0,create/4,remove/2,auth/2]).
+-export([start_link/0,create/4,remove/2,auth/2,exec/3]).
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
@@ -14,7 +14,8 @@ start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [],[]).
 
 %% generate a new channel
-%% add client for the channel
+%% store channel - token pair
+%% the action is fail when connect fail
 create(User, Host, Port, Password) ->
   ChannelId = agent_id_gen:next(channel),
   essh_client_sup:add_client(ChannelId,[User,Host,Port]),
@@ -24,12 +25,12 @@ create(User, Host, Port, Password) ->
       Token = randchar(12),
       gen_server:call(?MODULE, {add,ChannelId,Token});
     Other ->
-      essh_client_sup:remove_client(ChannelId),
+      essh_client:stop(ChannelId),
       Other
   end.
 
 remove(ChannelId, Token) ->
-  Result = gen_server:call(?MODULE, {remove,[ChannelId, Token]}),
+  Result = gen_server:call(?MODULE, {remove,ChannelId,Token}),
   case Result of
     true ->
       essh_client_sup:remove_client(ChannelId);
@@ -37,8 +38,16 @@ remove(ChannelId, Token) ->
       false
   end.
 
+exec(Command, ChannelId, Token) ->
+  case gen_server:call(?MODULE, {auth,ChannelId,Token}) of
+    ok ->
+      essh_client:exec(ChannelId, Command);
+    Other ->
+      Other
+  end.
+
 auth(ChannelId, Token) ->
-  gen_server:call(?MODULE, {auth,[ChannelId, Token]}).
+  gen_server:call(?MODULE, {auth,ChannelId,Token}).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -47,7 +56,7 @@ auth(ChannelId, Token) ->
 init([]) ->
   {ok, dict:new()}.
 
-handle_call({auth,{ChannelId, Token}}, _From, Dict) ->
+handle_call({auth,ChannelId,Token}, _From, Dict) ->
   case dict:find(ChannelId, Dict) of
     error ->
       {reply, not_found, Dict};
@@ -66,7 +75,7 @@ handle_call({remove,ChannelId,Token}, _From, Dict) ->
   end;
 handle_call({add,ChannelId,Token}, _From, Dict) ->
   NewDict = dict:store(ChannelId, Token, Dict),
-  {reply, {ok, [ChannelId, Token]}, NewDict};
+  {reply, {ok, ChannelId, Token}, NewDict};
 handle_call(Request, _From, State) ->
   error_logger:info_msg(": ~p", [Request]),
   {reply, none, State}.

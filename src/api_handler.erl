@@ -26,13 +26,13 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
   {Password, _} = cowboy_req:qs_val(<<"password">>, Req, none),
   {Port, _}     = cowboy_req:qs_val(<<"port">>,     Req, none),
   
-  Result = essh_channel:create(
+  Result = essh_service:create(
     User,Host,
     Port,
     Password
   ),
   case Result of
-    {ok, [ChannelId, Token]} ->
+    {ok, ChannelId, Token} ->
       [200, [], <<(ChannelId++" "++Token)>>];
     no_host ->
       [404, [], <<"cannot find the host">>];
@@ -44,7 +44,7 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
   end;
 dispatch(<<"PUT">>,  [<<"channels">>,ChId], Req) ->
   {Token, _} = cowboy_req:qs_val(<<"token">>, Req, none),
-  case essh_channel:is_exist(ChId, Token) of
+  case essh_service:is_exist(ChId, Token) of
     ok -> 
       {Command, _} = cowboy_req:qs_val(<<"command">>, Req, none),
       {ok, CommandId} = essh_client:exec(ChId, Command),

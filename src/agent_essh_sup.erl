@@ -26,7 +26,7 @@ start_link() ->
 init([]) ->
   IdGen     = ?CHILD(agent_id_gen,    worker,     start_link, []),
   Redis     = ?CHILD(agent_redis,     worker,     start_link, []),
-  Channel   = ?CHILD(essh_channel,    worker,     start_link, []),
+  Service   = ?CHILD(essh_service,    worker,     start_link, []),
   ClientSup = ?CHILD(essh_client_sup, supervisor, start_link, []),
-  {ok, { {one_for_one, 5, 10}, [IdGen,Channel,Redis,ClientSup]} }.
+  {ok, { {one_for_one, 5, 10}, [IdGen,Service,Redis,ClientSup]} }.
 

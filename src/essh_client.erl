@@ -18,7 +18,9 @@
 %% WhoAmI: [User,Host,Port]
 start_link(ChannelId, WhoAmI ) ->
   error_logger:info_msg("start link: ~p, ~p", [ChannelId, WhoAmI]),
-  gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, [ChannelId|WhoAmI],[]).
+  X = gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, [ChannelId|WhoAmI],[]),
+  io:format("X: "++X),
+  X.
 
 connect(ChannelId, Password) ->
   gen_fsm:send_event(?SERVER(ChannelId), {connect, Password}).
