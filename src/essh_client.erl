@@ -8,7 +8,7 @@
 -export([new/2]).
 -export([code_change/4,terminate/3]).
 
--record(data, {channel,user,host,port,conn,cmds=[],handle=none}).
+-record(data, {channel,user,host,port,conn,cmds=[],current=none}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
@@ -28,7 +28,8 @@ stop(ChannelId) ->
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
 exec(ChannelId, Command) -> 
-  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,Command}).
+  Id = agent_store:add_command(),
+  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -44,7 +45,7 @@ new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
-      io:format("connetion: ~p", [Conn]),
+      io:format("conneted: ~p", [Conn]),
       {next_state, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
@@ -55,16 +56,36 @@ handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
   {stop,normal,true,StateData}.
 
-handle_event({exec, Command}, normal, StateData=#data{cmds=[],handle=none,channel=ChannelId}) ->
-  Handle = spawn(fun() -> essh_run:exec(StateData#data.conn,Command,ChannelId) end),
-  {next_state, normal, StateData#data{handle=Handle}};
-%% when cmds is not empty, the current cmd must be not none. 
-handle_event({exec, Command}, StateName, StateData=#data{cmds=Cmds,handle=_Handle}) ->
-  NewCmds = lists:append(Cmds, [Command]),
+handle_event({exec, CmdInfo}, normal, StateData=#data{cmds=[],current=none}) ->
+  do_exec(CmdInfo,StateData#data.conn),
+  {next_state, normal, StateData#data{current=CmdInfo}};
+%% when cmds is not empty, the current cmd must be not none.
+handle_event({exec, CmdInfo}, StateName, StateData=#data{cmds=Cmds}) ->
+  NewCmds = lists:append(Cmds, [CmdInfo]),
   {next_state, StateName, StateData#data{cmds=[NewCmds]}}.
 
-handle_info(Info, StateName, StateData) ->
-  error_logger:info_msg(": ~p", [Info]),
+handle_info({ssh_cm, _Conn, {closed,Chl}}, normal, StateData=#data{cmds=[NextCmdInfo|Others]}) ->
+  io:format("closed(~p)~n", [Chl]),
+  do_exec(NextCmdInfo,StateData#data.conn),
+  {next_state, normal, StateData#data{cmds=Others,current=none}};
+handle_info({ssh_cm, _Conn, {closed,Chl}}, StateName, StateData) ->
+  io:format("closed(~p) ~p ~n", [StateName,Chl]),
+  {next_state, StateName, StateData#data{current=none}};
+handle_info({ssh_cm, _Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
+  io:format("signal(~p) ~p ~p ~p ~p~n", [StateName,Chl, ExitSignal, ErrMsg, Lang]),
+  {next_state, StateName, StateData};
+handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,_Cmd}}) ->
+  case Info of
+    %% ignore the difference of type code
+    %% because stdout/stderr are used in different tool by
+    %% the different way.
+    {data, _Chl, _Type_code, Data} ->
+      agent_store:append_out(Id, Data);
+    {exit_status, _Chl, ExitStatus} ->
+      agent_store:exit_status(Id, ExitStatus);
+    {eof,_Chl} ->
+      agent_store:merge_out(Id)
+  end,
   {next_state, StateName, StateData}.
 
 code_change(_OldVsn, StateName, StateData, _Extra) ->
@@ -88,4 +109,8 @@ options(Password, User) ->
     none -> Options;
     _ -> [{password, Password}|Options]
   end.
+
+do_exec({_Id, Cmd}, Conn) ->
+  {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
+  success = ssh_connection:exec(Conn,Chl,Cmd,infinity).
 

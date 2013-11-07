@@ -75,10 +75,7 @@ handle_call({remove,ChannelId,Token}, _From, Dict) ->
   end;
 handle_call({add,ChannelId,Token}, _From, Dict) ->
   NewDict = dict:store(ChannelId, Token, Dict),
-  {reply, {ok, ChannelId, Token}, NewDict};
-handle_call(Request, _From, State) ->
-  error_logger:info_msg(": ~p", [Request]),
-  {reply, none, State}.
+  {reply, {ok, ChannelId, Token}, NewDict}.
 
 handle_info(Info, State) ->
   error_logger:info_msg(": ~p", [Info]),
