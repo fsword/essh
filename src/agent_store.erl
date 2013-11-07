@@ -1,8 +1,7 @@
 -module(agent_store).
 -behaviour(gen_server).
 
--export([start_link/0, push/2, range/2, set/2, fetch/1]).
--export([append_out/2,merge_out/1,exit_status/2]).
+-export([start_link/0,append_out/2,merge_out/1,exit_status/2]).
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
@@ -50,22 +49,6 @@ exit_status(CmdId, Status) when is_integer(CmdId) ->
         end
     end
   ).
-
-push(K,V) ->
-  Conn = gen_server:call(?MODULE, conn),
-  eredis:q(Conn, ["RPUSH", K,V]).
-
-range(K, N) ->
-  Conn = gen_server:call(?MODULE, conn),
-  eredis:q(Conn, ["LRANGE", K, 0, N]).
-
-set(K,V) ->
-  Conn = gen_server:call(?MODULE, conn),
-  eredis:q(Conn, ["SET", K,V]).
-
-fetch(K) ->
-  Conn = gen_server:call(?MODULE, conn),
-  eredis:q(Conn, ["GET", K]).
 
 init([]) ->
   eredis:start_link().

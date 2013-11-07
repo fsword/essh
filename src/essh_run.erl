@@ -5,7 +5,7 @@
 exec(Conn,Command,CmdId) ->
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
   success = ssh_connection:exec(Conn,Chl,Command,infinity),
-  loop(integer_to_list(CmdId)).
+  loop(CmdId).
 
 loop(Id) ->
   receive
@@ -20,13 +20,10 @@ loop(Id) ->
       loop(Id); 
     {ssh_cm, _Conn, {eof,_Chl}} ->
       agent_store:merge_out(Id),
-      %% agent_mnesia:update("out@"++Id, Data),
       loop(Id);
     {ssh_cm, _Conn, {exit_signal, _Chl, _ExitSignal, _ErrorMsg, _LanguageString}} ->
       %% TODO call From process
       loop(Id);
-    {ssh_cm, _Conn, {closed,_Chl}} ->
-      agent_store:merge_out(Id),
-      loop(Id)
-      %% closed %% TODO call From process
+    {ssh_cm, _Conn, {closed,Chl}} ->
+      io:format("closed: ~p", [Chl])
   end.
