@@ -1,0 +1,1 @@
+-record(command, {id, out, status}).

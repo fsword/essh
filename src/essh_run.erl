@@ -2,10 +2,10 @@
 
 -export([exec/3]).
 
-exec(Conn,Command,ChannelId) ->
+exec(Conn,Command,CmdId) ->
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
   success = ssh_connection:exec(Conn,Chl,Command,infinity),
-  loop(integer_to_list(ChannelId)).
+  loop(integer_to_list(CmdId)).
 
 loop(Id) ->
   receive
@@ -13,17 +13,20 @@ loop(Id) ->
       %% ignore the difference of type code
       %% because stdout/stderr are used in different tool by
       %% the different way.
-      agent_redis:lpush( "c@"++Id, Data),
+      agent_store:append_out(Id, Data),
       loop(Id);
     {ssh_cm, _Conn, {exit_status, _Chl, ExitStatus}} ->
-      agent_redis:set( "r@"++Id, ExitStatus),
+      agent_store:exit_status(Id, ExitStatus),
       loop(Id); 
     {ssh_cm, _Conn, {eof,_Chl}} ->
-      %% TODO eof: store whole stdout/stderr
+      agent_store:merge_out(Id),
+      %% agent_mnesia:update("out@"++Id, Data),
       loop(Id);
     {ssh_cm, _Conn, {exit_signal, _Chl, _ExitSignal, _ErrorMsg, _LanguageString}} ->
       %% TODO call From process
       loop(Id);
     {ssh_cm, _Conn, {closed,_Chl}} ->
-      closed %% TODO call From process
+      agent_store:merge_out(Id),
+      loop(Id)
+      %% closed %% TODO call From process
   end.
