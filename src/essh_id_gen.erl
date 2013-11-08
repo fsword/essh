@@ -1,4 +1,4 @@
--module(agent_id_gen).
+-module(essh_id_gen).
 
 -behaviour(gen_server).
 

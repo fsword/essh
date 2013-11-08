@@ -25,8 +25,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  IdGen     = ?CHILD(agent_id_gen,    worker,     start_link, []),
-  Store     = ?CHILD(agent_store,     worker,     start_link, []),
+  IdGen     = ?CHILD(essh_id_gen,     worker,     start_link, []),
+  Store     = ?CHILD(essh_store,      worker,     start_link, []),
   Service   = ?CHILD(essh_service,    worker,     start_link, []),
   ClientSup = ?CHILD(essh_client_sup, supervisor, start_link, []),
   {ok, { {one_for_one, 5, 10}, [IdGen,Service,Store,ClientSup]} }.

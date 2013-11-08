@@ -17,7 +17,7 @@ start_link() ->
 %% store channel - token pair
 %% the action is fail when connect fail
 create(User, Host, Port, Password) ->
-  ChannelId = agent_id_gen:next(channel),
+  ChannelId = essh_id_gen:next(channel),
   essh_client_sup:add_client(ChannelId,[User,Host,Port]),
   Result = essh_client:connect(ChannelId, Password),
   case Result of

@@ -28,7 +28,7 @@ stop(ChannelId) ->
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
 exec(ChannelId, Command) -> 
-  Id = agent_store:add_command(),
+  Id = essh_store:add_command(),
   gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}).
 
 %% ===================================================================
@@ -80,11 +80,11 @@ handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,_Cmd}}
     %% because stdout/stderr are used in different tool by
     %% the different way.
     {data, _Chl, _Type_code, Data} ->
-      agent_store:append_out(Id, Data);
+      essh_store:append_out(Id, Data);
     {exit_status, _Chl, ExitStatus} ->
-      agent_store:exit_status(Id, ExitStatus);
+      essh_store:exit_status(Id, ExitStatus);
     {eof,_Chl} ->
-      agent_store:merge_out(Id)
+      essh_store:merge_out(Id)
   end,
   {next_state, StateName, StateData}.
 

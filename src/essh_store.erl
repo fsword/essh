@@ -1,4 +1,4 @@
--module(agent_store).
+-module(essh_store).
 -behaviour(gen_server).
 
 -export([start_link/0,add_command/0,append_out/2,merge_out/1,exit_status/2]).
@@ -11,7 +11,7 @@ start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 add_command() ->
-  Id = agent_id_gen:next(command),
+  Id = essh_id_gen:next(command),
   mnesia:dirty_write(#command{id=Id}),
   Id.
 
