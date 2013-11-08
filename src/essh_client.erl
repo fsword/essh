@@ -62,17 +62,17 @@ handle_event({exec, CmdInfo}, normal, StateData=#data{cmds=[],current=none}) ->
 %% when cmds is not empty, the current cmd must be not none.
 handle_event({exec, CmdInfo}, StateName, StateData=#data{cmds=Cmds}) ->
   NewCmds = lists:append(Cmds, [CmdInfo]),
-  {next_state, StateName, StateData#data{cmds=[NewCmds]}}.
+  {next_state, StateName, StateData#data{cmds=NewCmds}}.
 
-handle_info({ssh_cm, _Conn, {closed,Chl}}, normal, StateData=#data{cmds=[NextCmdInfo|Others]}) ->
-  io:format("closed(~p)~n", [Chl]),
+handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{cmds=[NextCmdInfo|Others]}) ->
+  io:format("next(~p,~p)~n", [Conn, Chl]),
   do_exec(NextCmdInfo,StateData#data.conn),
-  {next_state, normal, StateData#data{cmds=Others,current=none}};
-handle_info({ssh_cm, _Conn, {closed,Chl}}, StateName, StateData) ->
-  io:format("closed(~p) ~p ~n", [StateName,Chl]),
+  {next_state, normal, StateData#data{cmds=Others,current=NextCmdInfo}};
+handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData) ->
+  io:format("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
   {next_state, StateName, StateData#data{current=none}};
-handle_info({ssh_cm, _Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
-  io:format("signal(~p) ~p ~p ~p ~p~n", [StateName,Chl, ExitSignal, ErrMsg, Lang]),
+handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
+  io:format("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
   {next_state, StateName, StateData};
 handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,_Cmd}}) ->
   case Info of
@@ -92,11 +92,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
   {ok, StateName, StateData}.
 
 terminate(Reason, StateName, StateData) ->
-  io:format("Reason: ~p~n", [Reason]),
-  io:format("State: ~p~n", [StateName]),
-  io:format("State: ~p~n", [StateData]),
-
-  terminated.
+  io:format("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
 
 options(Password, User) ->
   Options = [

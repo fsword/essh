@@ -89,10 +89,7 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 terminate(Reason, State) ->
-  io:format("Reason: ~p~n", Reason),
-  io:format("State: ~p~n", State),
-
-  terminated.
+  io:format("Reason: ~p ~p~n", [Reason, State]).
 
 randchar(N) ->
   randchar(N, []).
