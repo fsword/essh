@@ -30,30 +30,31 @@ merge_out(CmdId) when is_integer(CmdId) ->
     <<>>,
     BinOuts
   ),
+  update_command(#command{id=CmdId,out=Out},
+    fun() -> eredis:q(Conn, ["DEL", RedisKey]) end
+  ),
+  Out.
+
+exit_status(CmdId, Status) when is_integer(CmdId) ->
+  update_command(#command{id=CmdId, status=Status},none).
+
+update_command(Record=#command{id=CmdId,status=Status,out=Out},F) ->
   {Result, Info} = mnesia:transaction(fun() ->
         case mnesia:wread({command, CmdId}) of
-          [] -> mnesia:write(#command{id=CmdId,out=Out});
-          [Cmd|_] -> 
-            mnesia:write(Cmd#command{out=Out})
+          [] -> mnesia:write(Record);
+          [Cmd|_] when is_binary(Out) -> 
+            mnesia:write(Cmd#command{out=Out});
+          [Cmd|_] when is_integer(Status) -> 
+            mnesia:write(Cmd#command{status=Status})
         end
     end
   ),
   case Result of
     aborted -> error_logger:error_msg("merge abort(~p) ~p",[CmdId,Info]);
-    atomic  ->
-      eredis:q(Conn, ["DEL", RedisKey]),
-      Out
+    atomic when is_function(F) -> F();
+    atomic -> atomic
   end.
 
-exit_status(CmdId, Status) when is_integer(CmdId) ->
-  mnesia:transaction(fun() ->
-        case mnesia:wread({command, CmdId}) of
-          [] -> mnesia:write(#command{id=CmdId,status=Status});
-          [Cmd|_] -> 
-            mnesia:write(Cmd#command{status=Status})
-        end
-    end
-  ).
 
 init([]) ->
   eredis:start_link().
