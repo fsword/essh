@@ -16,7 +16,7 @@ start(_StartType, _StartArgs) ->
   TransOpts = [{port, Port}],
   ProtoOpts = [{env, [{dispatch, Dispatch}]}],
   {ok, _}   = cowboy:start_http(http, ?C_ACCEPTORS, TransOpts, ProtoOpts),
-  agent_ssh_sup:start_link(),
+  agent_essh_sup:start_link(),
   agent_cowboy_sup:start_link().
 
 stop(_State) ->

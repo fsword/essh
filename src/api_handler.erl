@@ -21,19 +21,19 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 dispatch(<<"POST">>, [<<"channels">>], Req) ->
-  {User, _}     = cowboy_req:qs_val(<<"user">>,     Req, none),
-  {Host, _}     = cowboy_req:qs_val(<<"host">>,     Req, none),
-  {Password, _} = cowboy_req:qs_val(<<"password">>, Req, none),
-  {Port, _}     = cowboy_req:qs_val(<<"port">>,     Req, none),
-  
-  Result = essh_service:create(
-    User,Host,
-    Port,
-    Password
-  ),
-  case Result of
+  %% HasBody = cowboy_req:has_body(Req),
+  {ok, PostVals, _} = cowboy_req:body_qs(Req),
+ 
+  User     = post_value("user",     PostVals),
+  Host     = post_value("host",     PostVals),
+  Port     = post_value("port",     PostVals),
+  Password = post_value("password", PostVals),
+
+  case essh_service:create(User,Host,Port,Password) of
     {ok, ChannelId, Token} ->
-      [200, [], <<(ChannelId++" "++Token)>>];
+      D = integer_to_list(ChannelId)++"|"++Token,
+      io:format("channel with token: ~p~n", [D]),
+      [200, [], list_to_binary(D)];
     no_host ->
       [404, [], <<"cannot find the host">>];
     cannot_conn ->
@@ -42,17 +42,26 @@ dispatch(<<"POST">>, [<<"channels">>], Req) ->
     {bad_request, Msg} when is_binary(Msg) ->
       [400, [], Msg]
   end;
-dispatch(<<"PUT">>,  [<<"channels">>,ChId], Req) ->
-  {Token, _} = cowboy_req:qs_val(<<"token">>, Req, none),
-  case essh_service:is_exist(ChId, Token) of
+dispatch(<<"PUT">>,  [<<"channels">>,ChannelId], Req) ->
+  {ok, PostVals, _} = cowboy_req:body_qs(Req),
+  Token = post_value("token", PostVals),
+  ChId  = binary_to_integer(ChannelId),
+  case essh_service:auth(ChId, Token) of
     ok -> 
-      {Command, _} = cowboy_req:qs_val(<<"command">>, Req, none),
+      Command = post_value("command", PostVals),
       {ok, CommandId} = essh_client:exec(ChId, Command),
-      [200, [], <<CommandId>>];
+      [200, [], integer_to_binary(CommandId)];
     not_found ->
-      [404, [], <<"not found">>];
+      [404, [], <<"not found"    >>];
     not_allow ->
       [401, [], <<"access denied">>]
   end;
-dispatch(_Method, _Path, _Req) ->
+dispatch(Method, Path, Req) ->
+  io:format("req not found: ~p ~p ~p", [Method, Path, Req]),
   [404, [], <<"not found">>]. 
+
+post_value(Key, PostVals) ->
+  case proplists:get_value(list_to_binary(Key), PostVals) of
+    undefined -> undefined;
+    V -> binary_to_list(V)
+  end.

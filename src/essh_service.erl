@@ -23,9 +23,9 @@ create(User, Host, Port, Password) ->
   case Result of
     ok ->
       Token = randchar(12),
-      gen_server:call(?MODULE, {add,ChannelId,Token});
+      gen_server:call(?MODULE, {add,ChannelId,Token}),
+      {ok, ChannelId,Token};
     Other ->
-      essh_client:stop(ChannelId),
       Other
   end.
 
@@ -49,9 +49,9 @@ exec(Command, ChannelId, Token) ->
 auth(ChannelId, Token) ->
   gen_server:call(?MODULE, {auth,ChannelId,Token}).
 
-%% ===================================================================
+%% =========================================================
 %% Supervisor callbacks
-%% ===================================================================
+%% =========================================================
 
 init([]) ->
   {ok, dict:new()}.
@@ -75,7 +75,7 @@ handle_call({remove,ChannelId,Token}, _From, Dict) ->
   end;
 handle_call({add,ChannelId,Token}, _From, Dict) ->
   NewDict = dict:store(ChannelId, Token, Dict),
-  {reply, {ok, ChannelId, Token}, NewDict}.
+  {reply, ok, NewDict}.
 
 handle_info(Info, State) ->
   error_logger:info_msg(": ~p", [Info]),

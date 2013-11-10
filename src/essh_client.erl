@@ -5,7 +5,6 @@
 -export([start_link/2]).
 -export([connect/2, exec/2, stop/1]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
--export([new/2]).
 -export([code_change/4,terminate/3]).
 
 -record(data, {channel,user,host,port,conn,cmds=[],current=none}).
@@ -17,11 +16,11 @@
 
 %% WhoAmI: [User,Host,Port]
 start_link(ChannelId, WhoAmI ) ->
-  error_logger:info_msg("start link: ~p, ~p", [ChannelId, WhoAmI]),
+  error_logger:info_msg("start link: ~p, ~p~n", [ChannelId, WhoAmI]),
   gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, [ChannelId|WhoAmI],[]).
 
 connect(ChannelId, Password) ->
-  gen_fsm:send_event(?SERVER(ChannelId), {connect, Password}).
+  gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), {connect, Password}).
 
 stop(ChannelId) ->
   error_logger:info_msg("stop: ~p, ~p~n", [ChannelId]),
@@ -29,29 +28,28 @@ stop(ChannelId) ->
 
 exec(ChannelId, Command) -> 
   Id = essh_store:add_command(),
-  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}).
+  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}),
+  {ok, Id}.
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([ChannelId,User,Host,none]) ->
+init([ChannelId,User,Host,undefined]) ->
   init([ChannelId,User,Host,22]);
 init([ChannelId,User,Host,Port]) ->
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
-new({connect,Password}, StateData=#data{host=Host,port=Port}) ->
+handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Host,port=Port}) ->
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
-      io:format("conneted: ~p", [Conn]),
-      {next_state, normal, StateData#data{conn=Conn}};
+      {reply, ok, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
-      {stop, {error, Reason}, StateData}
-  end.
-
+      {stop, Reason, {error, Reason}, StateData}
+  end;
 handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
   {stop,normal,true,StateData}.
@@ -102,7 +100,7 @@ options(Password, User) ->
     {connect_timeout, 2000}
   ],
   case Password of
-    none -> Options;
+    undefined -> Options;
     _ -> [{password, Password}|Options]
   end.
 
