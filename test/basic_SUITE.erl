@@ -82,6 +82,7 @@ all() ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
+    agent_essh_sup:run_once(),
     Config.
 
 %%--------------------------------------------------------------------
@@ -142,6 +143,7 @@ end_per_group(_group, Config) ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_testcase(_TestCase, Config) ->
+    agent_essh_sup:start_link(),
     Config.
 
 %%--------------------------------------------------------------------
@@ -163,12 +165,16 @@ end_per_testcase(_TestCase, Config) ->
 test_agent_essh() ->
     [{userdata,[{doc,"Testing the essh supervisor of agent module"}]}].
 
-test_agent_essh(_Config) ->
-    agent_essh_sup:run_once(),
-    agent_essh_sup:start_link(),
+test_agent_essh_async(_Config) ->
     {ok, Id, Token} = essh_service:create("john","localhost",22,undefined),
-    {ok, CmdId1} = essh_service:exec("date && sleep 0.2 && echo finish", Id, Token),
-    {ok, CmdId2} = essh_service:exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token),
+    {ok, CmdId1} = essh_service:async_exec("date && sleep 0.2 && echo finish", Id, Token),
+    {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token),
     timer:sleep(1000),
-    {0, _} = essh_service:result(CmdId1),
-    {0, _} = essh_service:result(CmdId2).
+    {0, _} = essh_service:result(Id, Token, CmdId1),
+    {0, _} = essh_service:result(Id, Token, CmdId2).
+
+test_agent_essh_sync(_Config) ->
+    {ok, Id, Token} = essh_service:create("john","localhost",22,undefined),
+    {0, _CmdId1} = essh_service:sync_exec("date && sleep 0.2 && echo finish", Id, Token),
+    {0, _CmdId2} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token).
+

@@ -3,10 +3,13 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([create/4,remove/2,auth/2,exec/3,result/1]).
+-export([create/4,remove/2,auth/2]).
+-export([async_exec/3,sync_exec/3,sync_exec/4,result/3]).
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
+
+-define(TIMEOUT, 60000).
 
 %% ===================================================================
 %% API functions
@@ -33,22 +36,39 @@ create(User, Host, Port, Password) ->
 remove(ChannelId, Token) ->
     Result = gen_server:call(?MODULE, {remove,ChannelId,Token}),
     case Result of
-        true ->
-            essh_client_sup:remove_client(ChannelId);
-        false ->
-            false
+        true  -> essh_client_sup:remove_client(ChannelId);
+        false -> false
     end.
 
-exec(Command, ChannelId, Token) ->
+async_exec(Command, ChannelId, Token) ->
+    do_auth(
+      ChannelId, Token, 
+      fun() -> essh_client:exec(ChannelId, Command) end
+    ).
+
+sync_exec(Command, ChannelId, Token) ->
+    sync_exec(Command, ChannelId, Token, ?TIMEOUT).
+
+sync_exec(Command, ChannelId, Token, Timeout) ->
+    do_auth(
+      ChannelId, Token, 
+      fun() ->
+          Result = essh_client:sync_exec(ChannelId, Command),
+          essh_receiver:handle(Result, Timeout)
+      end
+    ).
+
+result(ChannelId, Token, CmdId) ->
+    do_auth(
+      ChannelId, Token, 
+      fun() -> essh_store:result(CmdId) end
+    ).
+
+do_auth(ChannelId, Token, F) ->
     case gen_server:call(?MODULE, {auth,ChannelId,Token}) of
-        ok ->
-            essh_client:exec(ChannelId, Command);
-        Other ->
-            Other
+        ok -> F();
+        Other -> Other
     end.
-
-result(CmdId) ->
-    essh_store:result(CmdId).
 
 auth(ChannelId, Token) ->
     gen_server:call(?MODULE, {auth,ChannelId,Token}).
