@@ -3,3 +3,10 @@ ebin
 erl_crash.dump
 **/*.swp
 Mnesia*
+/all_runs.html
+/ct*
+/index.html
+/jquery*
+/jquery.tablesorter.min.js
+**/*.beam
+variables-ct*
