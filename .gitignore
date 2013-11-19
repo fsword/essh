@@ -10,3 +10,4 @@ Mnesia*
 /jquery.tablesorter.min.js
 **/*.beam
 variables-ct*
+/logs/*
