@@ -1,7 +1,7 @@
 -module(essh_store).
 -behaviour(gen_server).
 
--export([start_link/0,add_command/0,append_out/2,merge_out/1,exit_status/2]).
+-export([start_link/0,add_command/0,append_out/2,merge_out/1,exit_status/2,result/1]).
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
@@ -55,6 +55,13 @@ update_command(Record=#command{id=CmdId,status=Status,out=Out},F) ->
             error_logger:error_msg("merge abort(~p) ~p",[CmdId,Info]);
         {atomic, _} when is_function(F) -> F();
         {atomic, _} -> atomic
+    end.
+
+result(CmdId) ->
+    case mnesia:dirty_read({command, CmdId}) of
+        [] -> not_found;
+        [#command{status=Status,out=Out}|_] -> 
+            {Status, Out}
     end.
 
 init([]) ->
