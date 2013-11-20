@@ -35,5 +35,7 @@ run_once() ->
     mnesia:create_schema([node()|nodes()]),
     mnesia:start(),
     mnesia:create_table(command, [
-                                  {attributes, record_info(fields, command)}
+                                  {attributes, record_info(fields, command)},
+                                  {type, ordered_set},
+                                  {disc_copies, [node()]}
                                  ]).
