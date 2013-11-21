@@ -1,11 +1,21 @@
 -module(essh_store).
 -behaviour(gen_server).
 
+-export([run_once/0]).
 -export([start_link/0,add_command/0,append_out/2,merge_out/1,exit_status/2,result/1]).
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
 -include("records.hrl").
+
+run_once() ->
+    mnesia:create_schema([node()|nodes()]),
+    mnesia:start(),
+    mnesia:create_table(command, [
+                                  {attributes, record_info(fields, command)},
+                                  {type, ordered_set},
+                                  {disc_copies, [node()]}
+                                 ]).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -59,9 +69,10 @@ update_command(Record=#command{id=CmdId,status=Status,out=Out},F) ->
 
 result(CmdId) ->
     case mnesia:dirty_read({command, CmdId}) of
-        [] -> not_found;
+        [] -> 
+            not_found;
         [#command{status=Status,out=Out}|_] -> 
-            {Status, Out}
+            {ok, Status, Out}
     end.
 
 init([]) ->

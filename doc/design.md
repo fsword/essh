@@ -57,20 +57,35 @@
 > will execute every command on queue when machine is normal.
 >   each command is execute over ssh, all stdout/stderr will be
 > saved on redis store.
+> 
 > Request Params:
->   required: channel\_id, token, command\_line\_string
+>   required: channel\_id, token, command
 > Response:
->   PID, PPID
+>   CommandId
 
-* get out/err
+* get out/err(common)
+> URI:
+>   GET http://[agent\_host][:port]/api/commands/$command\_id
+> Description:
+>   get the stdout/stderr of specified command. When command is not
+> finished, this action will return current output.
+> 
+> Request Params:
+>   required: command\_id, channel\_id, token
+> Response:
+>   stdout/stderr as body
+
+* get out/err(websocket)
 > URI:
 >   ws://[agent\_host][:port]/websocket
 > Description:
->   
+>   return stdout/stderr like stream.
+> 
 > Request Params:
->   required: channel\_id, token, command\_line\_string
+>   required: command\_id, channel\_id, token
 >   optional: line\_no( empty means `from now` )
-> Response: ...
+> Response:
+>   stdout/stderr as stream
 
 ### supervisor/worker tree
 

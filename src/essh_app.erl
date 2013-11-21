@@ -1,4 +1,4 @@
--module(agent_cowboy_app).
+-module(essh_app).
 
 -behaviour(application).
 
@@ -16,8 +16,7 @@ start(_StartType, _StartArgs) ->
   TransOpts = [{port, Port}],
   ProtoOpts = [{env, [{dispatch, Dispatch}]}],
   {ok, _}   = cowboy:start_http(http, ?C_ACCEPTORS, TransOpts, ProtoOpts),
-  agent_essh_sup:start_link(),
-  agent_cowboy_sup:start_link().
+  essh_sup:start_link().
 
 stop(_State) ->
   %% release supervisor tree
@@ -26,8 +25,8 @@ stop(_State) ->
 routes() ->
   Host = '_',
   Paths = [
-    {"/api/[...]", api_handler, []},
-    {"/websocket/[...]", ws_handler, []}
+    {"/api/[...]"      , essh_web_api_handler, []},
+    {"/websocket/[...]", essh_web_ws_handler , []}
   ],
   [ {Host, Paths} ].
 

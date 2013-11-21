@@ -1,6 +1,6 @@
-{application, agent_cowboy,
+{application, essh,
  [
-  {description, "agent by cowboy"},
+  {description, "Expand ssh tool to make it as base of network management system."},
   {vsn, "1"},
   {registered, []},
   {applications, [
@@ -9,6 +9,6 @@
                   cowlib,
                   cowboy
                  ]},
-  {mod, { agent_cowboy_app, []}},
+  {mod, { essh_app, []}},
   {env, [{http_port, 8002}]}
  ]}.

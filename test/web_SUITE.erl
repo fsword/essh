@@ -1,6 +1,6 @@
 %% common_test suite for mymodule
 
--module(basic_SUITE).
+-module(web_SUITE).
 -include_lib("common_test/include/ct.hrl").
 
 -compile(export_all).
@@ -143,7 +143,7 @@ end_per_group(_group, Config) ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_testcase(_TestCase, Config) ->
-    essh_sup:start_link(),
+    essh:start(),
     Config.
 
 %%--------------------------------------------------------------------
@@ -165,7 +165,7 @@ end_per_testcase(_TestCase, Config) ->
 test_essh() ->
     [{userdata,[{doc,"Testing the essh supervisor of agent module"}]}].
 
-test_essh_async(_Config) ->
+test_async(_Config) ->
     {ok, Id, Token} = essh_service:create("john","localhost",22,undefined),
     {ok, CmdId1} = essh_service:async_exec("date && sleep 0.2 && echo finish", Id, Token),
     {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token),
@@ -173,8 +173,8 @@ test_essh_async(_Config) ->
     {ok, _, _} = essh_service:result(Id, Token, CmdId1),
     {ok, _, _} = essh_service:result(Id, Token, CmdId2).
 
-test_essh_sync(_Config) ->
+test_sync(_Config) ->
     {ok, Id, Token} = essh_service:create("john","localhost",22,undefined),
-    {0, _} = essh_service:sync_exec("date && sleep 0.2 && echo finish", Id, Token),
-    {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token).
+    {0,_} = essh_service:sync_exec("date && sleep 0.2 && echo finish", Id, Token),
+    {0,_} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token).
 

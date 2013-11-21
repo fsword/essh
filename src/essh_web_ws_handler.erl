@@ -1,4 +1,4 @@
--module(ws_handler).           
+-module(essh_web_ws_handler).           
 -behaviour(cowboy_websocket_handler).
   
 -export([init/3]).             
