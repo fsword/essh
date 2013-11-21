@@ -1,4 +1,4 @@
--module(agent_cowboy).
+-module(essh).
 
 -export([start/0]).
 
@@ -7,4 +7,4 @@ start() ->
   application:start(ranch),
   application:start(cowlib),
   application:start(cowboy),
-  application:start(agent_cowboy).
+  application:start(essh).

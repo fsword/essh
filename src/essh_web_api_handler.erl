@@ -1,4 +1,4 @@
--module(api_handler).
+-module(essh_web_api_handler).
 
 -export([init/3]).
 -export([handle/2]).
