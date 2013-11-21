@@ -2,7 +2,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0,run_once/0]).
+-export([start_link/0]).
 %% Supervisor callbacks
 -export([init/1]).
 
@@ -31,11 +31,4 @@ init([]) ->
     ClientSup = ?CHILD(essh_client_sup, supervisor, start_link, []),
     {ok, { {one_for_one, 5, 10}, [IdGen,Service,Store,ClientSup]} }.
 
-run_once() ->
-    mnesia:create_schema([node()|nodes()]),
-    mnesia:start(),
-    mnesia:create_table(command, [
-                                  {attributes, record_info(fields, command)},
-                                  {type, ordered_set},
-                                  {disc_copies, [node()]}
-                                 ]).
+

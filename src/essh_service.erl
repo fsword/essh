@@ -58,6 +58,8 @@ sync_exec(Command, ChannelId, Token, Timeout) ->
       end
     ).
 
+result(ChannelId, Token, CmdId) when is_binary(Token)->
+    result(ChannelId, binary_to_list(Token), CmdId);
 result(ChannelId, Token, CmdId) ->
     do_auth(
       ChannelId, Token, 

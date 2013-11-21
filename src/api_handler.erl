@@ -21,47 +21,62 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 dispatch(<<"POST">>, [<<"channels">>], Req) ->
-  %% HasBody = cowboy_req:has_body(Req),
-  {ok, PostVals, _} = cowboy_req:body_qs(Req),
- 
-  User     = post_value("user",     PostVals),
-  Host     = post_value("host",     PostVals),
-  Port     = post_value("port",     PostVals),
-  Password = post_value("password", PostVals),
+    {ok, PostVals, _} = cowboy_req:body_qs(Req),
 
-  case essh_service:create(User,Host,Port,Password) of
-    {ok, ChannelId, Token} ->
-      D = integer_to_list(ChannelId)++"|"++Token,
-      io:format("channel with token: ~p~n", [D]),
-      [200, [], list_to_binary(D)];
-    no_host ->
-      [404, [], <<"cannot find the host">>];
-    cannot_conn ->
-      [503, [], <<"ssh connection fail">>];
-    %% 不接受非binary的Msg返回值
-    {bad_request, Msg} when is_binary(Msg) ->
-      [400, [], Msg]
-  end;
-dispatch(<<"PUT">>,  [<<"channels">>,ChannelId], Req) ->
-  {ok, PostVals, _} = cowboy_req:body_qs(Req),
-  Token = post_value("token", PostVals),
-  ChId  = binary_to_integer(ChannelId),
-  case essh_service:auth(ChId, Token) of
-    ok -> 
-      Command = post_value("command", PostVals),
-      {ok, CommandId} = essh_client:exec(ChId, Command),
-      [200, [], integer_to_binary(CommandId)];
-    not_found ->
-      [404, [], <<"not found"    >>];
-    not_allow ->
-      [401, [], <<"access denied">>]
-  end;
+    User     = post_value("user",     PostVals),
+    Host     = post_value("host",     PostVals),
+    Port     = post_value("port",     PostVals),
+    Password = post_value("password", PostVals),
+
+    case essh_service:create(User,Host,Port,Password) of
+        {ok, ChannelId, Token} ->
+            D = integer_to_list(ChannelId)++"|"++Token,
+            io:format("channel with token: ~p~n", [D]),
+            [200, [], list_to_binary(D)];
+        Other -> default_action(Other)
+    end;
+dispatch(<<"PUT">>,  [<<"channels">>,ChnIdStr], Req) ->
+    {ok, PostVals, _} = cowboy_req:body_qs(Req),
+    Token = post_value("token", PostVals),
+    ChnId  = binary_to_integer(ChnIdStr),
+    Command = post_value("command", PostVals),
+
+    case essh_service:async_exec(Command, ChnId, Token) of
+        {ok, CommandId} ->
+            [200, [], integer_to_binary(CommandId)];
+        Other -> default_action(Other)
+    end;
+dispatch(<<"GET">>,  [<<"commands">>,CmdIdStr], Req) ->
+
+    CmdId = binary_to_integer(CmdIdStr),
+    {ChnIdStr, _} = cowboy_req:qs_val(<<"channel_id">>, Req),
+    ChnId = binary_to_integer(ChnIdStr),
+    {Token   , _} = cowboy_req:qs_val(<<"token">>     , Req),
+
+    io:format("get ~p ~p ~p~n", [Token, ChnId, CmdId]),
+    case essh_service:result(ChnId, Token, CmdId) of
+        {ok, _, Out} -> [200, [], Out];
+        Other        -> default_action(Other)
+    end;
 dispatch(Method, Path, Req) ->
-  io:format("req not found: ~p ~p ~p", [Method, Path, Req]),
-  [404, [], <<"not found">>]. 
+    io:format("req not found: ~p ~p ~p", [Method, Path, Req]),
+    [404, [], <<"not found">>]. 
 
 post_value(Key, PostVals) ->
   case proplists:get_value(list_to_binary(Key), PostVals) of
     undefined -> undefined;
     V -> binary_to_list(V)
   end.
+
+default_action(no_host) ->
+    [404, [], <<"cannot find the host">>];
+default_action(not_found) ->
+    [404, [], <<"not found"    >>];
+default_action(not_allow) ->
+    [401, [], <<"access denied">>];
+default_action(cannot_conn) ->
+    [503, [], <<"ssh connection fail">>];
+%% 不接受非binary的Msg返回值
+default_action({bad_request, Msg}) when is_binary(Msg) ->
+    [400, [], Msg].
+
