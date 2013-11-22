@@ -25,8 +25,7 @@ stop(_State) ->
 routes() ->
   Host = '_',
   Paths = [
-    {"/api/[...]"      , essh_web_api_handler, []},
-    {"/websocket/[...]", essh_web_ws_handler , []}
+    {"/api/[...]"      , essh_web_api_handler, []}
   ],
   [ {Host, Paths} ].
 
