@@ -167,14 +167,14 @@ test_essh() ->
 
 test_essh_async(_Config) ->
     {ok, Id, Token} = essh_service:create(undefined,"localhost",22,undefined),
-    {ok, CmdId1} = essh_service:async_exec("date && sleep 0.2 && echo finish", Id, Token),
-    {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token),
-    timer:sleep(500),
+    {ok, CmdId1} = essh_service:async_exec("date && sleep 0.1 && echo finish", Id, Token),
+    {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token),
+    timer:sleep(200),
     {ok, _, _} = essh_service:result(Id, Token, CmdId1),
     {ok, _, _} = essh_service:result(Id, Token, CmdId2).
 
 test_essh_sync(_Config) ->
     {ok, Id, Token} = essh_service:create(undefined,"localhost",22,undefined),
-    {0, _} = essh_service:sync_exec("date && sleep 0.2 && echo finish", Id, Token),
-    {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.1", Id, Token).
+    {0, _} = essh_service:sync_exec("date && sleep 0.1 && echo finish", Id, Token),
+    {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
 
