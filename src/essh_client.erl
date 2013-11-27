@@ -128,13 +128,13 @@ options(Password, User) ->
     {user_interaction, false},
     {connect_timeout, 2000}
   ],
-  password(Password) ++ user(User) ++ CommonOptions.
+  password(Password, user(User, CommonOptions)).
 
-password(undefined) -> [];
-password(Password)  -> [{password, Password}].
+password(undefined, Options) -> Options;
+password(Password,  Options) -> [{password, Password}|Options].
 
-user(undefined)     -> [];
-user(User)          -> [{user, User}].
+user(undefined, Options)     -> Options;
+user(User,      Options)     -> [{user, User}|Options].
 
 do_exec(Cmd, Conn) ->
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
