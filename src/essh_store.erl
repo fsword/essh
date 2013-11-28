@@ -6,6 +6,8 @@
 
 -export([init/1,handle_call/3,handle_cast/2,handle_info/2]).
 -export([code_change/3,terminate/2]).
+
+-export([add_channel/2, check_channel/2, remove_channel/2]).
 -include("records.hrl").
 
 run_once() ->
@@ -13,6 +15,11 @@ run_once() ->
     mnesia:start(),
     mnesia:create_table(command, [
                                   {attributes, record_info(fields, command)},
+                                  {type, ordered_set},
+                                  {disc_copies, [node()]}
+                                 ]),
+    mnesia:create_table(channel, [
+                                  {attributes, record_info(fields, channel)},
                                   {type, ordered_set},
                                   {disc_copies, [node()]}
                                  ]).
@@ -74,6 +81,19 @@ result(CmdId) ->
         [#command{status=Status,out=Out}|_] -> 
             {ok, Status, Out}
     end.
+
+add_channel(ChannelId, Token) ->
+    mnesia:dirty_write(#channel{id=ChannelId,token=Token}).
+
+check_channel(ChannelId, Token) ->
+    case mnesia:dirty_read({channel, ChannelId}) of
+        [#channel{token=Token}|_] -> ok;
+        []                        -> not_found;
+        _                         -> not_allow
+    end.
+
+remove_channel(ChannelId, _Token) ->
+    mnesia:dirty_delete({channel, ChannelId}).
 
 init([]) ->
     eredis:start_link().
