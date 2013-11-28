@@ -31,8 +31,8 @@
 
 > conclusion
 > * active data should be achieved everyday
-> * use redis as dynamic store
-> * use mongodb/mnesia as document store
+> * use client process state to store runtime output
+> * use mongodb/mnesia as final storage mechanism
 
 ### interface
 
@@ -89,22 +89,22 @@
 
 ### supervisor/worker tree
 
-                                 agent_cowboy_app
-                                     /    \
-                                    /      \
-                        agent_ssh_sup       agent_cowboy_sup
-                          /   |     \
-                         /    |      \
-                        /     |       \
-                       /      |        \
-           agent_channel  agent_id_gen  agent_client_sup
-                                             |
-                                             |
-                                        agent_client
+                        essh_app
+                           |
+                           |
+            ----------  essh_sup       
+           |           /   |   \
+       essh_store     /    |    \
+                     /     |     \
+                    /      |      \
+        essh_channel  essh_id_gen  essh_client_sup
+                                          |
+                                          |
+                                     agent_client
 
 ### module design
 
-#### agent\_cowboy\_app
+#### essh\_app
 This module is based on cowboy. It designed as global router.
 
 routes:
@@ -113,10 +113,10 @@ routes:
 
 #### handlers 
 
-* api\_handler: used to add web access for the agent.
-* ws\_handler:  used to add websocket support of web pages.
+* essh\_web\_api\_handler: used to add web access for the agent.
+* essh\_web\_ws\_handler:  used to add websocket support of web pages.
 
-#### agent\_channel
+#### essh\_channel
 
 This module managed all channels information.  
 
@@ -124,7 +124,7 @@ Channel information is a mapping like:
 
     {user,host} -> {channelid,token}
 
-#### agent\_id\_gen
+#### essh\_id\_gen
 
 This module make global id. 
 
@@ -132,15 +132,15 @@ It used for generate unique key like sequence id of database.
 
 It is based on process dict.
 
-#### agent\_client
+#### essh\_client
 
 This module managed ssh clients.
 
-#### store\_service
+#### essh\_store
 
 This module is designed to supply a common api for storage( eg: redis, mnesia )
 
-### agent client 
+### essh client 
 
 As a FSM module, agent client will run according the state diagram like:
 
