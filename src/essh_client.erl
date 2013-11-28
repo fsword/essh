@@ -123,16 +123,18 @@ terminate(Reason, StateName, StateData) ->
   io:format("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
 
 options(Password, User) ->
-  Options = [
-    {user, User}, 
+  CommonOptions = [
     {silently_accept_hosts, true},
     {user_interaction, false},
     {connect_timeout, 2000}
   ],
-  case Password of
-    undefined -> Options;
-    _ -> [{password, Password}|Options]
-  end.
+  password(Password, user(User, CommonOptions)).
+
+password(undefined, Options) -> Options;
+password(Password,  Options) -> [{password, Password}|Options].
+
+user(undefined, Options)     -> Options;
+user(User,      Options)     -> [{user, User}|Options].
 
 do_exec(Cmd, Conn) ->
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),

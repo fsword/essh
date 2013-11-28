@@ -118,6 +118,7 @@ terminate(Reason, State) ->
     io:format("Reason: ~p ~p~n", [Reason, State]).
 
 randchar(N) ->
+    random:seed(erlang:now()),
     randchar(N, []).
 
 randchar(0, Acc) ->
