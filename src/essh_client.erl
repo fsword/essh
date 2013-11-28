@@ -7,7 +7,7 @@
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
 -export([code_change/4,terminate/3]).
 
--record(data, {channel,user,host,port,conn,cmds=[],current=none}).
+-record(data, {channel,user,host,port,conn,cmds=[],current}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
@@ -16,7 +16,6 @@
 
 %% WhoAmI: [User,Host,Port]
 start_link(ChannelId, WhoAmI ) ->
-  error_logger:info_msg("start link: ~p, ~p~n", [ChannelId, WhoAmI]),
   gen_fsm:start_link({local, ?SERVER(ChannelId)}, ?MODULE, [ChannelId|WhoAmI],[]).
 
 connect(ChannelId, Password) ->
@@ -43,6 +42,7 @@ sync_exec(ChannelId, Command) ->
 init([ChannelId,User,Host,undefined]) ->
   init([ChannelId,User,Host,22]);
 init([ChannelId,User,Host,Port]) ->
+  error_logger:info_msg("start link: ~p, ~p~n", [ChannelId, self()]),
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
@@ -55,63 +55,51 @@ handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Ho
       io:format("error: ~p~n", [Reason]),
       {stop, Reason, {error, Reason}, StateData}
   end;
+
 handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
   {stop,normal,true,StateData};
-handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, normal, StateData=#data{current=none}) ->
+
+handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
   %% assertion: cmds is empty
   do_exec(Cmd,StateData#data.conn),
   {reply, ok, normal, StateData#data{current={Id,Pid}}};
-%% when cmds is not empty, the current cmd must be not none.
+%% when cmds is not empty, the current cmd must be not undefined.
 handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->
   NewCmds = lists:append(Cmds, [{Id,Cmd,Pid}]),
   {reply, ok, StateName, StateData#data{cmds=NewCmds}}.
 
 %% just for exec event, so there is no reply definitely
 handle_event(Event, StateName, StateData) ->
-  {reply, ok, NewName, NewData} = handle_sync_event(Event, {none,none}, StateName, StateData),
+  {reply, ok, NewName, NewData} = handle_sync_event(Event, {undefined,undefined}, StateName, StateData),
   {next_state, NewName, NewData}.
 
 handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{cmds=[{Id,Cmd,From}|Others]}) ->
   io:format("next(~p,~p)~n", [Conn, Chl]),
-  do_exec(Cmd,StateData#data.conn),
-  if
-      From == none -> ok;
-      true         -> From ! close
-  end,
+  do_exec(Cmd,Conn),
+  fire_event(From, close),
   {next_state, normal, StateData#data{cmds=Others,current={Id,From}}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From}}) ->
   io:format("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
-  if
-      From == none -> ok;
-      true         -> From ! close
-  end,
-  {next_state, StateName, StateData#data{current=none}};
+  fire_event(From, close),
+  {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
   io:format("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
   {next_state, StateName, StateData};
 handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From}}) ->
+    io:format("ssh_cm: ~p~n", [Info]),
   case Info of
     %% ignore the difference of type code
     %% because stdout/stderr are used in different tool by
     %% the different way.
     {data, _Chl, _Type_code, Data} ->
-      if
-          From == none -> ok;
-          true         -> From ! {data, Data}
-      end,
+      fire_event(From, {data, Data}),
       essh_store:append_out(Id, Data);
     {exit_status, _Chl, ExitStatus} ->
-      if
-          From == none -> ok;
-          true         -> From ! {exit, ExitStatus}
-      end,
+      fire_event(From, {exit, ExitStatus}),
       essh_store:exit_status(Id, ExitStatus);
     {eof,_Chl} ->
-      if
-          From == none -> ok;
-          true         -> From ! eof
-      end,
+      fire_event(From, eof),
       essh_store:merge_out(Id)
   end,
   {next_state, StateName, StateData}.
@@ -121,6 +109,9 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 terminate(Reason, StateName, StateData) ->
   io:format("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
+
+fire_event(undefined, _) -> ok;
+fire_event(From,  Event) -> From ! Event.
 
 options(Password, User) ->
   CommonOptions = [
