@@ -178,6 +178,16 @@ test_essh_sync(_Config) ->
     {0, _} = essh_service:sync_exec("date && sleep 0.1 && echo finish", Id, Token),
     {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
 
+%% test_simple_sync_exec(_Config) ->
+%%     Cmd1="date && sleep 0.1 && echo finish",
+%%     {ok, _, _} = essh_service:exec(user(),host(),port(),passwd(),Cmd,sync).
+%% 
+%% test_simple_async_exec(_Config) ->
+%% 
+%%     Cmd="nohup date 2>&1 >/dev/null && date && sleep 0.05",
+%%     {ok, Id, Token} = essh_service:exec(user(),host(),port(),passwd(),Cmd,async),
+%%     timer:sleep(200),
+%%     {ok, _, _} = essh_service:result(Token, Id).
 
 host()     -> "localhost".
 port()     -> 22.
