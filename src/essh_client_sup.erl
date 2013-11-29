@@ -12,8 +12,10 @@
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-add_client(ChannelId,WhoAmI) ->
-  supervisor:start_child(?MODULE,[ChannelId,WhoAmI]).
+add_client(WhoAmI,Password) ->
+    ChannelId = essh_id_gen:next(channel),
+    supervisor:start_child(?MODULE,[ChannelId,WhoAmI]),
+    essh_client:connect(ChannelId, Password).
 
 %% ===================================================================
 %% Supervisor callbacks

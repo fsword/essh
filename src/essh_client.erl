@@ -46,11 +46,11 @@ init([ChannelId,User,Host,Port]) ->
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
-handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Host,port=Port}) ->
+handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Host,port=Port,channel=ChannelId}) ->
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
-      {reply, ok, normal, StateData#data{conn=Conn}};
+      {reply, {ok,ChannelId}, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       io:format("error: ~p~n", [Reason]),
       {stop, Reason, {error, Reason}, StateData}

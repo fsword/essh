@@ -9,13 +9,10 @@
 %% store channel - token pair
 %% the action is fail when connect fail
 create(User, Host, Port, Password) ->
-    ChannelId = essh_id_gen:next(channel),
-    essh_client_sup:add_client(ChannelId,[User,Host,Port]),
-    Result = essh_client:connect(ChannelId, Password),
+    Result = essh_client_sup:add_client([User,Host,Port],Password),
     case Result of
-        ok ->
-            Token = randchar(12),
-            essh_store:add_channel(ChannelId,Token),
+        {ok,ChannelId} ->
+            Token = essh_store:add_channel(ChannelId),
             {ok, ChannelId,Token};
         Other ->
             Other
@@ -63,15 +60,4 @@ do_auth(ChannelId, Token, F) ->
 auth(ChannelId, Token) ->
     essh_store:check_channel(ChannelId,Token).
 
-%% =========================================================
-%% Supervisor callbacks
-%% =========================================================
 
-randchar(N) ->
-    random:seed(erlang:now()),
-    randchar(N, []).
-
-randchar(0, Acc) ->
-    Acc;
-randchar(N, Acc) ->
-    randchar(N - 1, [random:uniform(26) + 96 | Acc]).
