@@ -3,11 +3,11 @@
 -behaviour(gen_fsm).
 
 -export([start_link/2]).
--export([connect/2, exec/2, sync_exec/2, stop/1]).
+-export([connect/2, exec/2, sync_exec/2, stop/1,fire_event/2]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
 -export([code_change/4,terminate/3]).
 
--record(data, {channel,user,host,port,conn,cmds=[],current}).
+-record(data, {channel,user,host,port,conn,cmds=[],current,out}).
 -define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).
 
 %% ===================================================================
@@ -63,7 +63,7 @@ handle_sync_event(stop, _From, _StateName, StateData) ->
 handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
   %% assertion: cmds is empty
   do_exec(Cmd,StateData#data.conn),
-  {reply, ok, normal, StateData#data{current={Id,Pid}}};
+  {reply, ok, normal, StateData#data{current={Id,Pid},out=[]}};
 %% when cmds is not empty, the current cmd must be not undefined.
 handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->
   NewCmds = lists:append(Cmds, [{Id,Cmd,Pid}]),
@@ -75,34 +75,36 @@ handle_event(Event, StateName, StateData) ->
   {next_state, NewName, NewData}.
 
 handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{cmds=[{Id,Cmd,From}|Others]}) ->
-  io:format("next(~p,~p)~n", [Conn, Chl]),
-  do_exec(Cmd,Conn),
-  fire_event(From, close),
-  {next_state, normal, StateData#data{cmds=Others,current={Id,From}}};
+    io:format("next(~p,~p)~n", [Conn, Chl]),
+    do_exec(Cmd,Conn),
+    fire_event(From, close),
+    {next_state, normal, StateData#data{cmds=Others,current={Id,From},out=[]}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From}}) ->
-  io:format("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
-  fire_event(From, close),
-  {next_state, StateName, StateData#data{current=undefined}};
+    io:format("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
+    fire_event(From, close),
+    {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
-  io:format("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
-  {next_state, StateName, StateData};
-handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From}}) ->
-    io:format("ssh_cm: ~p~n", [Info]),
-  case Info of
-    %% ignore the difference of type code
-    %% because stdout/stderr are used in different tool by
-    %% the different way.
-    {data, _Chl, _Type_code, Data} ->
-      fire_event(From, {data, Data}),
-      essh_store:append_out(Id, Data);
-    {exit_status, _Chl, ExitStatus} ->
-      fire_event(From, {exit, ExitStatus}),
-      essh_store:exit_status(Id, ExitStatus);
-    {eof,_Chl} ->
-      fire_event(From, eof),
-      essh_store:merge_out(Id)
-  end,
-  {next_state, StateName, StateData}.
+    io:format("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
+    {next_state, StateName, StateData};
+handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From},out=Out}) ->
+    io:format("ssh_cm: ~p~n", [Info]),%%TODO remove
+    NewOut = case Info of
+                 %% ignore the difference of type code
+                 %% because stdout/stderr are used in different tool by
+                 %% the different way.
+                 {data, _Chl, _Type_code, Data} ->
+                     fire_event(From, {data, Data}),
+                     [Data|Out];
+                 {exit_status, _Chl, ExitStatus} ->
+                     fire_event(From, {exit, ExitStatus}),
+                     essh_store:exit_status(Id, ExitStatus),
+                     Out;
+                 {eof,_Chl} ->
+                     fire_event(From, eof),
+                     essh_store:merge_out(Id,Out),
+                     []
+             end,
+    {next_state, StateName, StateData#data{out=NewOut}}.
 
 code_change(_OldVsn, StateName, StateData, _Extra) ->
   {ok, StateName, StateData}.

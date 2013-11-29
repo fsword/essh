@@ -97,11 +97,23 @@
        essh_store     /    |    \
                      /     |     \
                     /      |      \
-        essh_channel  essh_id_gen  essh_client_sup
+        essh_service  essh_id_gen  essh_client_sup
                                           |
                                           |
                                      agent_client
 
+### functional modules diagram
+
+                                     essh_web_api_handler
+                                          |
+                                          v
+                               ---------essh_service ------> essh_receiver
+                              |           |
+                              |           v
+                              |      essh_client
+                              |           |
+                              |           v
+                              -------> essh_store
 ### module design
 
 #### essh\_app
