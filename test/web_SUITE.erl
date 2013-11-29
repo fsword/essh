@@ -41,3 +41,6 @@ test_async(_Config) ->
     "hello\n" = web_helper:get("http://localhost:8002/api/commands/"++CmdId, 
                       [{token, Token}, {channel_id, ChId}]
                      ).
+%%TODO
+%% test web invoke with callback
+%% test cancel command
