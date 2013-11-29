@@ -166,7 +166,7 @@ test_essh() ->
     [{userdata,[{doc,"Testing the essh supervisor of agent module"}]}].
 
 test_essh_async(_Config) ->
-    {ok, Id, Token} = essh_service:create(undefined,"localhost",22,undefined),
+    {ok, Id, Token} = essh_service:create(user(),host(),port(),passwd()),
     {ok, CmdId1} = essh_service:async_exec("date && sleep 0.1 && echo finish", Id, Token),
     {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token),
     timer:sleep(200),
@@ -174,7 +174,13 @@ test_essh_async(_Config) ->
     {ok, _, _} = essh_service:result(Id, Token, CmdId2).
 
 test_essh_sync(_Config) ->
-    {ok, Id, Token} = essh_service:create(undefined,"localhost",22,undefined),
+    {ok, Id, Token} = essh_service:create(user(),host(),port(),passwd()),
     {0, _} = essh_service:sync_exec("date && sleep 0.1 && echo finish", Id, Token),
     {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
+
+
+host()     -> "localhost".
+port()     -> 22.
+user()     -> undefined.
+passwd() -> undefined.
 
