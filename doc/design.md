@@ -158,3 +158,4 @@ Other commands that agent client can take:
 * result: get the result for the command
 * clear: clear all rest commands of the client
 * interrupt: kill the command which is executing on the client
+* TODO what about this command? "/bin/bash"
