@@ -1,4 +1,4 @@
 language: erlang
-script: "./rebar get-deps compile ct skip_deps=true"
+script: "echo $PATH && whoami && pwd && ./rebar get-deps compile ct skip_deps=true"
 otp_release:
     - R16B
