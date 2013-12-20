@@ -18,7 +18,7 @@ loop({Status,Data}, Result, Timeout) ->
             io:format("loop fin"),
             loop({Status,Data}, Result, Timeout);
         close ->
-            {Status, Data}
+            {ok, Status, Data}
     after
-        Timeout -> Result
+        Timeout -> {timeout, Result}
     end.

@@ -5,10 +5,7 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib,
-                  cowlib,
-                  cowboy
+                  stdlib
                  ]},
-  {mod, { essh_app, []}},
-  {env, [{http_port, 8002}]}
+  {mod, { essh_app, []}}
  ]}.

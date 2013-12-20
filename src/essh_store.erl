@@ -1,23 +1,8 @@
 -module(essh_store).
 
--export([run_once/0]).
 -export([add_command/0,merge_out/2,exit_status/2,result/1]).
 -export([add_channel/1, check_channel/2, remove_channel/2]).
 -include("records.hrl").
-
-run_once() ->
-    mnesia:create_schema([node()|nodes()]),
-    mnesia:start(),
-    mnesia:create_table(command, [
-                                  {attributes, record_info(fields, command)},
-                                  {type, ordered_set},
-                                  {disc_copies, [node()]}
-                                 ]),
-    mnesia:create_table(channel, [
-                                  {attributes, record_info(fields, channel)},
-                                  {type, ordered_set},
-                                  {disc_copies, [node()]}
-                                 ]).
 
 add_command() ->
     Id = essh_id_gen:next(command),

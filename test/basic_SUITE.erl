@@ -82,7 +82,7 @@ all() ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
-    essh_store:run_once(),
+    essh:run_once(),
     Config.
 
 %%--------------------------------------------------------------------
@@ -143,7 +143,7 @@ end_per_group(_group, Config) ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_testcase(_TestCase, Config) ->
-    essh_sup:start_link(),
+    essh:start(),
     Config.
 
 %%--------------------------------------------------------------------
@@ -165,29 +165,29 @@ end_per_testcase(_TestCase, Config) ->
 test_essh() ->
     [{userdata,[{doc,"Testing the essh supervisor of agent module"}]}].
 
-test_essh_async(_Config) ->
-    {ok, Id, Token} = essh_service:create(user(),host(),port(),passwd()),
-    {ok, CmdId1} = essh_service:async_exec("date && sleep 0.1 && echo finish", Id, Token),
-    {ok, CmdId2} = essh_service:async_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token),
+test_exec_async(_Config) ->
+    {ok, Id, Token} = essh:create(user(),host(),port(),passwd()),
+    {ok, CmdId1} = essh:exec("date && sleep 0.1 && echo finish", Id, Token, async),
+    {ok, CmdId2} = essh:exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token, async),
+    timer:sleep(300),
+    {ok, 0, _} = essh:result(Id, Token, CmdId1),
+    {ok, 0, _} = essh:result(Id, Token, CmdId2).
+
+test_exec_sync(_Config) ->
+    {ok, Id, Token} = essh:create(user(),host(),port(),passwd()),
+    {ok, 0, _} = essh:exec("date && sleep 0.1 && echo finish", Id, Token),
+    {ok, 0, _} = essh:exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
+
+test_cmd_sync(_Config) ->
+    Cmd="echo sync_ok && sleep 0.1 && echo finish",
+    {ok, 0,<<"sync_ok\nfinish\n">>} = essh:cmd(Cmd,user(),host(),port(),passwd()).
+
+test_cmd_async(_Config) ->
+
+    Cmd="nohup date 2>&1 >/dev/null && echo async_ok && sleep 0.05",
+    {ok, ChId, Token, CmdId} = essh:cmd(Cmd, user(),host(),port(),passwd(),async),
     timer:sleep(200),
-    {ok, _, _} = essh_service:result(Id, Token, CmdId1),
-    {ok, _, _} = essh_service:result(Id, Token, CmdId2).
-
-test_essh_sync(_Config) ->
-    {ok, Id, Token} = essh_service:create(user(),host(),port(),passwd()),
-    {0, _} = essh_service:sync_exec("date && sleep 0.1 && echo finish", Id, Token),
-    {0, _} = essh_service:sync_exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
-
-%% test_simple_sync_exec(_Config) ->
-%%     Cmd1="date && sleep 0.1 && echo finish",
-%%     {ok, _, _} = essh_service:exec(user(),host(),port(),passwd(),Cmd,sync).
-%% 
-%% test_simple_async_exec(_Config) ->
-%% 
-%%     Cmd="nohup date 2>&1 >/dev/null && date && sleep 0.05",
-%%     {ok, Id, Token} = essh_service:exec(user(),host(),port(),passwd(),Cmd,async),
-%%     timer:sleep(200),
-%%     {ok, _, _} = essh_service:result(Token, Id).
+    {_, 0, <<"async_ok\n">>} = essh:result(ChId, Token, CmdId).
 
 host()     -> "localhost".
 port()     -> 22.
