@@ -5,7 +5,7 @@ before_script:
     - cat test/ssh/authorized_keys >> ~/.ssh/authorized_keys
     - chmod 700 ~/.ssh
     - chmod 600 ~/.ssh/*
-    - ssh localhost 'date'
+    - ssh -oStrictHostKeyChecking=no localhost 'date'
 script:
     - ./rebar compile ct
 otp_release:
