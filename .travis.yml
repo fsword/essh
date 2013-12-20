@@ -1,4 +1,11 @@
 language: erlang
-script: "echo $PATH && whoami && pwd && ./rebar get-deps compile ct skip_deps=true"
+before_script:
+    - mkdir -p ~/.ssh
+    - cp test/ssh/id_dsa ~/.ssh/
+    - cat test/ssh/authorized_keys >> ~/.ssh/authorized_keys
+    - chmod 700 ~/.ssh
+    - chmod 600 ~/.ssh/*
+script:
+    - ./rebar compile ct
 otp_release:
     - R16B
