@@ -1,4 +1,4 @@
-{application, essh,
+{application, essh_core,
  [
   {description, "Expand ssh tool to make it as base of network management system."},
   {vsn, "1"},
@@ -7,5 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { essh_app, []}}
+  {mod, { essh_app, []}},
+  {env, [{file, 'aaaa'}, {abc, dsfdsasd}]}
  ]}.

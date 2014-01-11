@@ -24,10 +24,10 @@ run_once() ->
                                  ]).
 
 start() ->
-  application:start(essh).
+  application:start(essh_core).
 
 stop() ->
-  application:stop(essh).
+  application:stop(essh_core).
 
 %% generate a new channel
 %% store channel - token pair

@@ -160,6 +160,7 @@ init_per_testcase(_TestCase, Config) ->
 %% Description: Cleanup after each test case.
 %%--------------------------------------------------------------------
 end_per_testcase(_TestCase, Config) ->
+    essh:stop(),
     Config.
 
 test_essh() ->
