@@ -1,13 +1,14 @@
 deps
 ebin
 erl_crash.dump
-**/*.swp
+*.swp
 Mnesia*
 /all_runs.html
 /ct*
 /index.html
 /jquery*
 /jquery.tablesorter.min.js
+/logs/*
 **/*.beam
 variables-ct*
-/logs/*
+rel/essh*

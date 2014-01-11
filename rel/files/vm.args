@@ -1,8 +1,8 @@
 ## Name of the node
--name essh@127.0.0.1
+-name essh_core@127.0.0.1
 
 ## Cookie for distributed erlang
--setcookie essh
+-setcookie essh_core
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

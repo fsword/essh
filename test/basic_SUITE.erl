@@ -82,7 +82,6 @@ all() ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
-    essh:run_once(),
     Config.
 
 %%--------------------------------------------------------------------
