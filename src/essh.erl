@@ -8,10 +8,10 @@
 -define(TIMEOUT, 60000).
 
 start() ->
-  application:start(essh_core).
+  application:start(essh).
 
 stop() ->
-  application:stop(essh_core).
+  application:stop(essh).
 
 %% generate a new channel
 %% store channel - token pair
