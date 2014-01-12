@@ -1,27 +1,11 @@
 -module(essh).
 
--export([run_once/0]).
 -export([start/0,stop/0]).
 -export([create/4,remove/2]).
 -export([cmd/5,cmd/6]).
 -export([exec/3,exec/4,result/3]).
 
--include("records.hrl").
 -define(TIMEOUT, 60000).
-
-run_once() ->
-    mnesia:create_schema([node()|nodes()]),
-    mnesia:start(),
-    mnesia:create_table(command, [
-                                  {attributes, record_info(fields, command)},
-                                  {type, ordered_set},
-                                  {disc_copies, [node()]}
-                                 ]),
-    mnesia:create_table(channel, [
-                                  {attributes, record_info(fields, channel)},
-                                  {type, ordered_set},
-                                  {disc_copies, [node()]}
-                                 ]).
 
 start() ->
   application:start(essh).
