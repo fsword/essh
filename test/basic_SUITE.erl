@@ -183,11 +183,15 @@ test_cmd_sync(_Config) ->
     {ok, 0,<<"sync_ok\nfinish\n">>} = essh:cmd(Cmd,user(),host(),port(),passwd()).
 
 test_cmd_async(_Config) ->
-
     Cmd="nohup date 2>&1 >/dev/null && echo async_ok && sleep 0.05",
     {ok, ChId, Token, CmdId} = essh:cmd(Cmd, user(),host(),port(),passwd(),async),
     timer:sleep(200),
     {_, 0, <<"async_ok\n">>} = essh:result(ChId, Token, CmdId).
+
+test_cmd_fail(_Config) ->
+    Cmd="echo sync_ok && sleep 0.1 && echo finish",
+    {error,econnrefused} = essh:cmd(Cmd,user(),host(),1029,passwd()),
+    {error,econnrefused} = essh:cmd(Cmd,user(),host(),1029,passwd(),async).
 
 host()     -> "localhost".
 port()     -> 22.

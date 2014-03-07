@@ -17,11 +17,17 @@ stop() ->
 %% store channel - token pair
 %% the action is fail when connect fail
 create(User, Host, Port, Password) ->
+    create(User, Host, Port, Password, none).
+
+create(User, Host, Port, Password, Callback) ->
     Result = essh_client_sup:add_client([User,Host,Port],Password),
     case Result of
         {ok,ChannelId} ->
             Token = essh_store:add_channel(ChannelId),
-            {ok, ChannelId,Token};
+            case Callback of
+                none -> {ok, ChannelId,Token};
+                _    -> Callback(ChannelId, Token)
+            end;
         Other ->
             Other
     end.
@@ -34,13 +40,17 @@ remove(ChannelId, Token) ->
     end.
 
 cmd(Command, User, Host, Port, Password) ->
-    {ok, Id, Token} = create(User, Host, Port, Password),
-    exec(Command, Id, Token).
+    CbFun = fun(ChId, Token) -> 
+                    exec(Command, ChId, Token) 
+            end,
+    create(User, Host, Port, Password, CbFun).
 
 cmd(Command, User, Host, Port, Password, async) ->
-    {ok, ChId, Token} = create(User, Host, Port, Password),
-    {ok, CmdId} = exec(Command, ChId, Token, async),
-    {ok, ChId, Token, CmdId}.
+    CbFun = fun(ChId, Token) ->
+                    {ok, CmdId} = exec(Command, ChId, Token, async),
+                    {ok, ChId, Token, CmdId}
+            end,
+    create(User, Host, Port, Password, CbFun).
 
 exec(Command, ChannelId, Token) ->
     exec(Command, ChannelId, Token, ?TIMEOUT).
@@ -67,8 +77,8 @@ result(ChannelId, Token, CmdId) ->
       fun() -> essh_store:result(CmdId) end
     ).
 
-do_auth(ChannelId, Token, F) ->
+do_auth(ChannelId, Token, ContinuationFun) ->
     case essh_store:check_channel(ChannelId,Token) of
-        ok -> F();
+        ok -> ContinuationFun();
         Other -> Other
     end.
