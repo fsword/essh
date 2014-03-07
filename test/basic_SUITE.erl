@@ -182,6 +182,12 @@ test_cmd_sync(_Config) ->
     Cmd="echo sync_ok && sleep 0.1 && echo finish",
     {ok, 0,<<"sync_ok\nfinish\n">>} = essh:cmd(Cmd,user(),host(),port(),passwd()).
 
+test_cmd_callback(_Config) ->
+    Cmd="echo sync_ok && sleep 0.1 && echo finish",
+    Callback = fun(Event) -> error_logger:info_msg("callback: ~p~n",[Event]) end,
+    {ok, _, _, _} = essh:cmd(Cmd,user(),host(),port(),passwd(),Callback),
+    timer:sleep(1000).
+
 test_cmd_async(_Config) ->
     Cmd="nohup date 2>&1 >/dev/null && echo async_ok && sleep 0.05",
     {ok, ChId, Token, CmdId} = essh:cmd(Cmd, user(),host(),port(),passwd(),async),
