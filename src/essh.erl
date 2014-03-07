@@ -56,18 +56,14 @@ exec(Command, ChannelId, Token) ->
     exec(Command, ChannelId, Token, ?TIMEOUT).
 
 exec(Command, ChannelId, Token, async) ->
-    do_auth(
-      ChannelId, Token, 
-      fun() -> essh_client:exec(ChannelId, Command) end
-    );
+    CbFun = fun() -> essh_client:exec(ChannelId, Command) end,
+    do_auth(ChannelId, Token, CbFun);
 exec(Command, ChannelId, Token, Timeout) ->
-    do_auth(
-      ChannelId, Token, 
-      fun() ->
-          Result = essh_client:sync_exec(ChannelId, Command),
-          essh_receiver:handle(Result, Timeout)
-      end
-    ).
+    CbFun = fun() ->
+                    Result = essh_client:sync_exec(ChannelId, Command),
+                    essh_receiver:handle(Result, Timeout)
+            end,
+    do_auth(ChannelId, Token, CbFun).
 
 result(ChannelId, Token, CmdId) when is_binary(Token)->
     result(ChannelId, binary_to_list(Token), CmdId);
