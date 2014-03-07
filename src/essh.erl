@@ -40,14 +40,20 @@ remove(ChannelId, Token) ->
     end.
 
 cmd(Command, User, Host, Port, Password) ->
-    CbFun = fun(ChId, Token) -> 
+    CbFunc = fun(ChId, Token) -> 
                     exec(Command, ChId, Token) 
             end,
-    create(User, Host, Port, Password, CbFun).
+    create(User, Host, Port, Password, CbFunc).
 
 cmd(Command, User, Host, Port, Password, async) ->
-    CbFun = fun(ChId, Token) ->
+    CbFunc = fun(ChId, Token) ->
                     {ok, CmdId} = exec(Command, ChId, Token, async),
+                    {ok, ChId, Token, CmdId}
+            end,
+    create(User, Host, Port, Password, CbFunc);
+cmd(Command, User, Host, Port, Password, ReceiverFunc) ->
+    CbFun = fun(ChId, Token) ->
+                    {ok, CmdId} = exec(Command, ChId, Token, ReceiverFunc),
                     {ok, ChId, Token, CmdId}
             end,
     create(User, Host, Port, Password, CbFun).
@@ -56,14 +62,17 @@ exec(Command, ChannelId, Token) ->
     exec(Command, ChannelId, Token, ?TIMEOUT).
 
 exec(Command, ChannelId, Token, async) ->
-    CbFun = fun() -> essh_client:exec(ChannelId, Command) end,
-    do_auth(ChannelId, Token, CbFun);
-exec(Command, ChannelId, Token, Timeout) ->
-    CbFun = fun() ->
-                    Result = essh_client:sync_exec(ChannelId, Command),
-                    essh_receiver:handle(Result, Timeout)
-            end,
-    do_auth(ChannelId, Token, CbFun).
+    CbFunc = fun() -> essh_client:exec(ChannelId, Command, undefined) end,
+    do_auth(ChannelId, Token, CbFunc);
+exec(Command, ChannelId, Token, ReceiverFunc) when is_function(ReceiverFunc) ->
+    CbFunc = fun() -> essh_client:exec(ChannelId, Command, ReceiverFunc) end,
+    do_auth(ChannelId, Token, CbFunc);
+exec(Command, ChannelId, Token, Timeout) when is_number(Timeout)->
+    CbFunc = fun() ->
+                     Result = essh_client:sync_exec(ChannelId, Command),
+                     essh_receiver:handle(Result, Timeout)
+             end,
+    do_auth(ChannelId, Token, CbFunc).
 
 result(ChannelId, Token, CmdId) when is_binary(Token)->
     result(ChannelId, binary_to_list(Token), CmdId);
@@ -73,8 +82,8 @@ result(ChannelId, Token, CmdId) ->
       fun() -> essh_store:result(CmdId) end
     ).
 
-do_auth(ChannelId, Token, ContinuationFun) ->
+do_auth(ChannelId, Token, ContinuationFunc) when is_function(ContinuationFunc)->
     case essh_store:check_channel(ChannelId,Token) of
-        ok -> ContinuationFun();
+        ok -> ContinuationFunc();
         Other -> Other
     end.

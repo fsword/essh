@@ -3,7 +3,7 @@
 -behaviour(gen_fsm).
 
 -export([start_link/2]).
--export([connect/2, exec/2, sync_exec/2, stop/1,fire_event/2]).
+-export([connect/2, exec/3, sync_exec/2, stop/1,fire_event/2]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
 -export([code_change/4,terminate/3]).
 
@@ -25,14 +25,14 @@ stop(ChannelId) ->
   error_logger:info_msg("stop: ~p, ~p~n", [ChannelId]),
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
-exec(ChannelId, Command) ->
+exec(ChannelId, Command, CbFunc) ->
   Id = essh_store:add_command(),
-  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}),
+  gen_fsm:send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command,CbFunc}}),
   {ok, Id}.
 
 sync_exec(ChannelId, Command) ->
   Id = essh_store:add_command(),
-  gen_fsm:sync_send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command}}),
+  gen_fsm:sync_send_all_state_event(?SERVER(ChannelId),{exec,{Id,Command,undefined}}),
   {ok, Id}.
 
 %% ===================================================================
@@ -60,13 +60,13 @@ handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
   {stop,normal,true,StateData};
 
-handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
+handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
   %% assertion: cmds is empty
   do_exec(Cmd,StateData#data.conn),
-  {reply, ok, normal, StateData#data{current={Id,Pid},out=[]}};
+  {reply, ok, normal, StateData#data{current={Id,Pid,CbFunc},out=[]}};
 %% when cmds is not empty, the current cmd must be not undefined.
-handle_sync_event({exec, {Id,Cmd}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->
-  NewCmds = lists:append(Cmds, [{Id,Cmd,Pid}]),
+handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->
+  NewCmds = lists:append(Cmds, [{Id,Cmd,Pid,CbFunc}]),
   {reply, ok, StateName, StateData#data{cmds=NewCmds}}.
 
 %% just for exec event, so there is no reply definitely
@@ -74,33 +74,34 @@ handle_event(Event, StateName, StateData) ->
   {reply, ok, NewName, NewData} = handle_sync_event(Event, {undefined,undefined}, StateName, StateData),
   {next_state, NewName, NewData}.
 
-handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{cmds=[{Id,Cmd,From}|Others]}) ->
+handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,From,CbFunc},cmds=[NewData|Others]}) ->
     error_logger:info_msg("next(~p,~p)~n", [Conn, Chl]),
-    do_exec(Cmd,Conn),
-    fire_event(From, close),
-    {next_state, normal, StateData#data{cmds=Others,current={Id,From},out=[]}};
-handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From}}) ->
+    fire_event(From, CbFunc, close),
+    {NewId, NewCmd, NewFrom, NewCbFunc} = NewData,
+    do_exec(NewCmd,Conn),
+    {next_state, normal, StateData#data{cmds=Others,current={NewId,NewFrom,NewCbFunc},out=[]}};
+handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->
     error_logger:info_msg("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
-    fire_event(From, close),
+    fire_event(From, CbFunc, close),
     {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
     error_logger:info_msg("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
-handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From},out=Out}) ->
+handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->
     error_logger:info_msg("ssh_cm: ~p~n", [Info]),%%TODO remove
     NewOut = case Info of
                  %% ignore the difference of type code
                  %% because stdout/stderr are used in different tool by
                  %% the different way.
                  {data, _Chl, _Type_code, Data} ->
-                     fire_event(From, {data, Data}),
+                     fire_event(From, CbFunc, {data, Data}),
                      [Data|Out];
                  {exit_status, _Chl, ExitStatus} ->
-                     fire_event(From, {exit, ExitStatus}),
+                     fire_event(From, CbFunc, {exit, ExitStatus}),
                      essh_store:exit_status(Id, ExitStatus),
                      Out;
                  {eof,_Chl} ->
-                     fire_event(From, eof),
+                     fire_event(From, CbFunc, eof),
                      essh_store:merge_out(Id,Out),
                      []
              end,
@@ -112,8 +113,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 terminate(Reason, StateName, StateData) ->
   error_logger:info_msg("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
 
-fire_event(undefined, _) -> ok;
-fire_event(From,  Event) -> From ! Event.
+fire_event(From, CbFunc, Event) -> 
+    fire_event(From, Event),
+    fire_event(CbFunc, Event).
+
+fire_event(undefined, _)                           -> ok;
+fire_event(CbFunc, Event) when is_function(CbFunc) -> CbFunc(Event);
+fire_event(From, Event)                            -> From ! Event.
 
 options(Password, User) ->
   CommonOptions = [
