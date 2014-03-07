@@ -52,7 +52,7 @@ handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Ho
     {ok, Conn} ->
       {reply, {ok,ChannelId}, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
-      io:format("error: ~p~n", [Reason]),
+      error_logger:info_msg("error: ~p~n", [Reason]),
       {stop, Reason, {error, Reason}, StateData}
   end;
 
@@ -75,19 +75,19 @@ handle_event(Event, StateName, StateData) ->
   {next_state, NewName, NewData}.
 
 handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{cmds=[{Id,Cmd,From}|Others]}) ->
-    io:format("next(~p,~p)~n", [Conn, Chl]),
+    error_logger:info_msg("next(~p,~p)~n", [Conn, Chl]),
     do_exec(Cmd,Conn),
     fire_event(From, close),
     {next_state, normal, StateData#data{cmds=Others,current={Id,From},out=[]}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From}}) ->
-    io:format("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
+    error_logger:info_msg("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
     fire_event(From, close),
     {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
-    io:format("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
+    error_logger:info_msg("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
 handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From},out=Out}) ->
-    io:format("ssh_cm: ~p~n", [Info]),%%TODO remove
+    error_logger:info_msg("ssh_cm: ~p~n", [Info]),%%TODO remove
     NewOut = case Info of
                  %% ignore the difference of type code
                  %% because stdout/stderr are used in different tool by
@@ -110,7 +110,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
   {ok, StateName, StateData}.
 
 terminate(Reason, StateName, StateData) ->
-  io:format("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
+  error_logger:info_msg("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
 
 fire_event(undefined, _) -> ok;
 fire_event(From,  Event) -> From ! Event.

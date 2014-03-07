@@ -3,7 +3,7 @@
 -export([handle/2]).
 
 handle(Result, Timeout) ->
-    io:format("loop start"),
+    error_logger:info_msg("loop start"),
     loop({none,<<>>}, Result, Timeout).
 
 loop({Status,Data}, Result, Timeout) ->
@@ -12,10 +12,10 @@ loop({Status,Data}, Result, Timeout) ->
             NewData = <<Data/binary, AppendData/binary>>,
             loop({Status, NewData}, Result, Timeout);
         {exit, NewStatus} ->
-            io:format("loop exit"),
+            error_logger:info_msg("loop exit"),
             loop({NewStatus,Data}, Result, Timeout);
         eof ->
-            io:format("loop fin"),
+            error_logger:info_msg("loop fin"),
             loop({Status,Data}, Result, Timeout);
         close ->
             {ok, Status, Data}
