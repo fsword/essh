@@ -12,14 +12,16 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-  run_once(),
-  essh_sup:start_link().
+    run_once(),
+    essh_sup:start_link().
 
 stop(_State) ->
-  %% release supervisor tree
-  ok.
+    %% release supervisor tree
+    ok.
 
 run_once() ->
+    crypto:start(),
+    ssh:start(),
     mnesia:create_schema([node()|nodes()]),
     mnesia:start(),
     mnesia:create_table(command, [

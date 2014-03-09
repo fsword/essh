@@ -15,9 +15,6 @@
 %% ===================================================================
 
 start_link() ->
-    crypto:start(),
-    ssh:start(),
-    mnesia:start(),
     mnesia:wait_for_tables([command], 5000),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
