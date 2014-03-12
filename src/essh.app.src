@@ -8,5 +8,5 @@
                   stdlib
                  ]},
   {mod, { essh_app, []}},
-  {env, [{file, 'aaaa'}, {abc, dsfdsasd}]}
+  {env, []}
  ]}.
