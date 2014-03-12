@@ -167,9 +167,10 @@ test_essh() ->
 
 test_exec_async(_Config) ->
     {ok, Id, Token} = essh:create(user(),host(),port(),passwd()),
-    {ok, CmdId1} = essh:exec("date && sleep 0.1 && echo finish", Id, Token, async),
-    {ok, CmdId2} = essh:exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token, async),
-    timer:sleep(300),
+    error_logger:info_msg("async conn created"),
+    {ok, CmdId1} = essh:exec("echo sth && sleep 0.1 && echo cmd1_after_0_1", Id, Token, async),
+    {ok, CmdId2} = essh:exec("nohup date 2>&1 >/dev/null && echo cmd2_after_0_05 && sleep 0.05 &", Id, Token, async),
+    timer:sleep(270), %% session create(80ms, 40ms) + sleep time(0.1s, 0.05s)
     {ok, 0, _} = essh:result(Id, Token, CmdId1),
     {ok, 0, _} = essh:result(Id, Token, CmdId2).
 

@@ -50,6 +50,7 @@ handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Ho
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
+      error_logger:info_msg("connected:~p~n",[Conn]),
       {reply, {ok,ChannelId}, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
       error_logger:info_msg("error: ~p~n", [Reason]),
@@ -58,10 +59,10 @@ handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Ho
 
 handle_sync_event(stop, _From, _StateName, StateData) ->
   %% TODO store all cmds and terminate ssh connection
-  {stop,normal,true,StateData};
+  {stop,normal,stopped,StateData};
 
 handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
-  %% assertion: cmds is empty
+  []=StateData#data.cmds, %% assert cmds is empty for fastfail
   do_exec(Cmd,StateData#data.conn),
   {reply, ok, normal, StateData#data{current={Id,Pid,CbFunc},out=[]}};
 %% when cmds is not empty, the current cmd must be not undefined.
@@ -136,6 +137,8 @@ user(undefined, Options)     -> Options;
 user(User,      Options)     -> [{user, User}|Options].
 
 do_exec(Cmd, Conn) ->
+  error_logger:info_msg("exec cmd in ~p~n",[Conn]),
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
+  error_logger:info_msg("create session in ~p~n",[Conn]),
   success = ssh_connection:exec(Conn,Chl,Cmd,infinity).
 

@@ -22,6 +22,7 @@ exit_status(CmdId, Status) when is_integer(CmdId) ->
     update_command(CmdId, fun(Record) -> Record#command{status=Status} end).
 
 update_command(CmdId, F) ->
+    error_logger:info_msg("update of CMD(~p)~n",[CmdId]),
     mnesia:transaction(fun() ->
                                case mnesia:wread({command, CmdId}) of
                                    [] -> mnesia:write(F(#command{id=CmdId}));
@@ -31,6 +32,7 @@ update_command(CmdId, F) ->
                       ).
 
 result(CmdId) ->
+    error_logger:info_msg("get result of CMD(~p)~n",[CmdId]),
     case mnesia:dirty_read({command, CmdId}) of
         [] -> 
             not_found;
