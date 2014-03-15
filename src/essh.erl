@@ -41,32 +41,31 @@ remove(ChannelId, Token) ->
 
 %% cmd function is used just once per channel
 cmd(Command, Host) ->
-    cmd(Command, undefined, Host).
+    cmd(Command, undefined, Host, undefined, undefined).
 
+cmd(Command, Host, async) ->
+    cmd(Command, undefined, Host, undefined, undefined, async);
 cmd(Command, User, Host) ->
-    cmd(Command, User, Host, undefined).
+    cmd(Command, User, Host, undefined, undefined).
 
+cmd(Command, User, Host, async) ->
+    cmd(Command, User, Host, undefined, undefined, async);
 cmd(Command, User, Host, Port) ->
     cmd(Command, User, Host, Port, undefined).
 
+cmd(Command, User, Host, Port, async) ->
+    cmd(Command, User, Host, Port, undefined, async);
 cmd(Command, User, Host, Port, Password) ->
-    CbFunc = fun(ChId, Token) -> 
-                     exec(Command, ChId, Token) 
-             end,
+    CbFunc = fun(ChId, Token) -> exec(Command, ChId, Token) end,
     create(User, Host, Port, Password, CbFunc).
 
-cmd(Command, User, Host, Port, Password, async) ->
+%% Other: async | ReceiverFunc
+cmd(Command, User, Host, Port, Password, Other) ->
     CbFunc = fun(ChId, Token) ->
-                    {ok, CmdId} = exec(Command, ChId, Token, async),
-                    {ok, ChId, Token, CmdId}
-            end,
-    create(User, Host, Port, Password, CbFunc);
-cmd(Command, User, Host, Port, Password, ReceiverFunc) ->
-    CbFun = fun(ChId, Token) ->
-                    {ok, CmdId} = exec(Command, ChId, Token, ReceiverFunc),
-                    {ok, ChId, Token, CmdId}
-            end,
-    create(User, Host, Port, Password, CbFun).
+                     {ok, CmdId} = exec(Command, ChId, Token, Other),
+                     {ok, ChId, Token, CmdId}
+             end,
+    create(User, Host, Port, Password, CbFunc).
 
 %% exec function is used when client want to reuse the channel
 exec(Command, ChannelId, Token) ->

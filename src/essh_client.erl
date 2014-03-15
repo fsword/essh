@@ -63,8 +63,8 @@ handle_sync_event(stop, _From, _StateName, StateData) ->
 
 handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->
   []=StateData#data.cmds, %% assert cmds is empty for fastfail
-  do_exec(Cmd,StateData#data.conn),
-  {reply, ok, normal, StateData#data{current={Id,Pid,CbFunc},out=[]}};
+  F = do_exec(Id,Cmd,StateData#data.conn,CbFunc),
+  {reply, ok, normal, StateData#data{current={Id,Pid,F},out=[]}};
 %% when cmds is not empty, the current cmd must be not undefined.
 handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->
   NewCmds = lists:append(Cmds, [{Id,Cmd,Pid,CbFunc}]),
@@ -79,8 +79,8 @@ handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,Fro
     error_logger:info_msg("next(~p,~p)~n", [Conn, Chl]),
     fire_event(From, CbFunc, close),
     {NewId, NewCmd, NewFrom, NewCbFunc} = NewData,
-    do_exec(NewCmd,Conn),
-    {next_state, normal, StateData#data{cmds=Others,current={NewId,NewFrom,NewCbFunc},out=[]}};
+    F = do_exec(NewId,NewCmd,Conn,NewCbFunc),
+    {next_state, normal, StateData#data{cmds=Others,current={NewId,NewFrom,F},out=[]}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->
     error_logger:info_msg("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
     fire_event(From, CbFunc, close),
@@ -136,9 +136,16 @@ password(Password,  Options) -> [{password, Password}|Options].
 user(undefined, Options)     -> Options;
 user(User,      Options)     -> [{user, User}|Options].
 
-do_exec(Cmd, Conn) ->
+do_exec(Id, Cmd, Conn, CbFunc) ->
   error_logger:info_msg("exec cmd in ~p~n",[Conn]),
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
   error_logger:info_msg("create session in ~p~n",[Conn]),
-  success = ssh_connection:exec(Conn,Chl,Cmd,infinity).
+  success = ssh_connection:exec(Conn,Chl,Cmd,infinity),
+  case CbFunc of
+      undefined -> undefined;
+      _ when is_function(CbFunc) ->
+          CbFunc(Id, add),
+          fun(Event) -> CbFunc(Id, Event) end
+  end.
+
 
