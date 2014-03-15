@@ -61,18 +61,13 @@ cmd(Command, User, Host, Port, Password) ->
              end,
     create(User, Host, Port, Password, CbFunc).
 
-cmd(Command, User, Host, Port, Password, async) ->
+%% Other: async | ReceiverFunc
+cmd(Command, User, Host, Port, Password, Other) ->
     CbFunc = fun(ChId, Token) ->
-                    {ok, CmdId} = exec(Command, ChId, Token, async),
-                    {ok, ChId, Token, CmdId}
-            end,
-    create(User, Host, Port, Password, CbFunc);
-cmd(Command, User, Host, Port, Password, ReceiverFunc) ->
-    CbFun = fun(ChId, Token) ->
-                    {ok, CmdId} = exec(Command, ChId, Token, ReceiverFunc),
-                    {ok, ChId, Token, CmdId}
-            end,
-    create(User, Host, Port, Password, CbFun).
+                     {ok, CmdId} = exec(Command, ChId, Token, Other),
+                     {ok, ChId, Token, CmdId}
+             end,
+    create(User, Host, Port, Password, CbFunc).
 
 %% exec function is used when client want to reuse the channel
 exec(Command, ChannelId, Token) ->
