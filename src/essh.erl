@@ -41,24 +41,22 @@ remove(ChannelId, Token) ->
 
 %% cmd function is used just once per channel
 cmd(Command, Host) ->
-    cmd(Command, undefined, Host).
+    cmd(Command, undefined, Host, undefined, undefined).
 
 cmd(Command, Host, async) ->
-    cmd(Command, User, Host, async);
+    cmd(Command, undefined, Host, undefined, undefined, async);
 cmd(Command, User, Host) ->
-    cmd(Command, User, Host, undefined).
+    cmd(Command, User, Host, undefined, undefined).
 
 cmd(Command, User, Host, async) ->
-    cmd(Command, User, Host, Port, async);
+    cmd(Command, User, Host, undefined, undefined, async);
 cmd(Command, User, Host, Port) ->
     cmd(Command, User, Host, Port, undefined).
 
 cmd(Command, User, Host, Port, async) ->
     cmd(Command, User, Host, Port, undefined, async);
 cmd(Command, User, Host, Port, Password) ->
-    CbFunc = fun(ChId, Token) -> 
-                     exec(Command, ChId, Token) 
-             end,
+    CbFunc = fun(ChId, Token) -> exec(Command, ChId, Token) end,
     create(User, Host, Port, Password, CbFunc).
 
 %% Other: async | ReceiverFunc
