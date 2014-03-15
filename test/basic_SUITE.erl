@@ -171,8 +171,8 @@ test_exec_async(_Config) ->
     {ok, CmdId1} = essh:exec("echo sth && sleep 0.1 && echo cmd1_after_0_1", Id, Token, async),
     {ok, CmdId2} = essh:exec("nohup date 2>&1 >/dev/null && echo cmd2_after_0_05 && sleep 0.05 &", Id, Token, async),
     timer:sleep(270), %% session create(80ms, 40ms) + sleep time(0.1s, 0.05s)
-    {ok, 0, _} = essh:result(Id, Token, CmdId1),
-    {ok, 0, _} = essh:result(Id, Token, CmdId2).
+    {ok, _, _} = essh:result(Id, Token, CmdId1),
+    {ok, _, _} = essh:result(Id, Token, CmdId2).
 
 test_exec_sync(_Config) ->
     {ok, Id, Token} = essh:create(user(),host(),port(),passwd()),
@@ -185,7 +185,7 @@ test_cmd_sync(_Config) ->
 
 test_cmd_callback(_Config) ->
     Cmd="echo sync_ok && sleep 0.1 && echo finish",
-    Callback = fun(Event) -> error_logger:info_msg("callback: ~p~n",[Event]) end,
+    Callback = fun(_Id,Event) -> error_logger:info_msg("callback: ~p~n",[Event]) end,
     {ok, _, _, _} = essh:cmd(Cmd,user(),host(),port(),passwd(),Callback),
     timer:sleep(1000).
 
