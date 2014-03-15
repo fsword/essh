@@ -2,7 +2,7 @@
 
 -export([start/0,stop/0]).
 -export([create/4,remove/2]).
--export([cmd/5,cmd/6]).
+-export([cmd/2,cmd/3,cmd/4,cmd/5,cmd/6]).
 -export([exec/3,exec/4,result/3]).
 
 -define(TIMEOUT, 60000).
@@ -39,10 +39,20 @@ remove(ChannelId, Token) ->
         false -> false
     end.
 
+%% cmd function is used just once per channel
+cmd(Command, Host) ->
+    cmd(Command, undefined, Host).
+
+cmd(Command, User, Host) ->
+    cmd(Command, User, Host, undefined).
+
+cmd(Command, User, Host, Port) ->
+    cmd(Command, User, Host, Port, undefined).
+
 cmd(Command, User, Host, Port, Password) ->
     CbFunc = fun(ChId, Token) -> 
-                    exec(Command, ChId, Token) 
-            end,
+                     exec(Command, ChId, Token) 
+             end,
     create(User, Host, Port, Password, CbFunc).
 
 cmd(Command, User, Host, Port, Password, async) ->
@@ -58,6 +68,7 @@ cmd(Command, User, Host, Port, Password, ReceiverFunc) ->
             end,
     create(User, Host, Port, Password, CbFun).
 
+%% exec function is used when client want to reuse the channel
 exec(Command, ChannelId, Token) ->
     exec(Command, ChannelId, Token, ?TIMEOUT).
 

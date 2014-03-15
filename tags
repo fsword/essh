@@ -1,0 +1,114 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CHILD	src/essh_sup.erl	/^-define(CHILD(I, Type, Fun, Args), {I, {I, Fun, Args}, permanent, 5000, Type, [I]}).$/;"	d
+C_ACCEPTORS	src/essh_app.erl	/^-define(C_ACCEPTORS,  2000).$/;"	d
+SERVER	src/essh_client.erl	/^-define(SERVER(ChannelId), list_to_atom("channel@" ++ integer_to_list(ChannelId))).$/;"	d
+TIMEOUT	src/essh.erl	/^-define(TIMEOUT, 60000).$/;"	d
+add_channel	src/essh_store.erl	/^add_channel(ChannelId) ->$/;"	f	module:essh_store
+add_client	src/essh_client_sup.erl	/^add_client(WhoAmI,Password) ->$/;"	f	module:essh_client_sup
+add_command	src/essh_store.erl	/^add_command() ->$/;"	f	module:essh_store
+all	test/basic_SUITE.erl	/^all() ->$/;"	f	module:basic_SUITE
+basic_SUITE	test/basic_SUITE.erl	/^-module(basic_SUITE).$/;"	m
+check_channel	src/essh_store.erl	/^check_channel(ChannelId, Token) ->$/;"	f	module:essh_store
+cmd	src/essh.erl	/^cmd(Command, User, Host, Port, Password) ->$/;"	f	module:essh
+cmd	src/essh.erl	/^cmd(Command, User, Host, Port, Password, ReceiverFunc) ->$/;"	f	module:essh
+cmd	src/essh.erl	/^cmd(Command, User, Host, Port, Password, async) ->$/;"	f	module:essh
+code_change	src/essh_client.erl	/^code_change(_OldVsn, StateName, StateData, _Extra) ->$/;"	f	module:essh_client
+code_change	src/essh_id_gen.erl	/^code_change(_OldVsn, State, _Extra) ->$/;"	f	module:essh_id_gen
+connect	src/essh_client.erl	/^connect(ChannelId, Password) ->$/;"	f	module:essh_client
+create	src/essh.erl	/^create(User, Host, Port, Password) ->$/;"	f	module:essh
+create	src/essh.erl	/^create(User, Host, Port, Password, Callback) ->$/;"	f	module:essh
+data	src/essh_client.erl	/^-record(data, {channel,user,host,port,conn,cmds=[],current,out}).$/;"	r
+do_auth	src/essh.erl	/^do_auth(ChannelId, Token, ContinuationFunc) when is_function(ContinuationFunc)->$/;"	f	module:essh
+do_exec	src/essh_client.erl	/^do_exec(Cmd, Conn) ->$/;"	f	module:essh_client
+end_per_group	test/basic_SUITE.erl	/^end_per_group(_group, Config) ->$/;"	f	module:basic_SUITE
+end_per_suite	test/basic_SUITE.erl	/^end_per_suite(_Config) ->$/;"	f	module:basic_SUITE
+end_per_testcase	test/basic_SUITE.erl	/^end_per_testcase(_TestCase, Config) ->$/;"	f	module:basic_SUITE
+essh	src/essh.erl	/^-module(essh).$/;"	m
+essh_app	src/essh_app.erl	/^-module(essh_app).$/;"	m
+essh_client	src/essh_client.erl	/^-module(essh_client).$/;"	m
+essh_client_sup	src/essh_client_sup.erl	/^-module(essh_client_sup).$/;"	m
+essh_id_gen	src/essh_id_gen.erl	/^-module(essh_id_gen).$/;"	m
+essh_receiver	src/essh_receiver.erl	/^-module(essh_receiver).$/;"	m
+essh_store	src/essh_store.erl	/^-module(essh_store).$/;"	m
+essh_sup	src/essh_sup.erl	/^-module(essh_sup).$/;"	m
+exec	src/essh.erl	/^exec(Command, ChannelId, Token) ->$/;"	f	module:essh
+exec	src/essh.erl	/^exec(Command, ChannelId, Token, ReceiverFunc) when is_function(ReceiverFunc) ->$/;"	f	module:essh
+exec	src/essh.erl	/^exec(Command, ChannelId, Token, Timeout) when is_number(Timeout)->$/;"	f	module:essh
+exec	src/essh.erl	/^exec(Command, ChannelId, Token, async) ->$/;"	f	module:essh
+exec	src/essh_client.erl	/^exec(ChannelId, Command, CbFunc) ->$/;"	f	module:essh_client
+exit_status	src/essh_store.erl	/^exit_status(CmdId, Status) when is_integer(CmdId) ->$/;"	f	module:essh_store
+fetch	src/essh_id_gen.erl	/^fetch(Key) when is_atom(Key) ->$/;"	f	module:essh_id_gen
+fire_event	src/essh_client.erl	/^fire_event(CbFunc, Event) when is_function(CbFunc) -> CbFunc(Event);$/;"	f	module:essh_client
+fire_event	src/essh_client.erl	/^fire_event(From, CbFunc, Event) -> $/;"	f	module:essh_client
+fire_event	src/essh_client.erl	/^fire_event(From, Event)                            -> From ! Event.$/;"	f	module:essh_client
+fire_event	src/essh_client.erl	/^fire_event(undefined, _)                           -> ok;$/;"	f	module:essh_client
+groups	test/basic_SUITE.erl	/^groups() -> [].$/;"	f	module:basic_SUITE
+handle	src/essh_receiver.erl	/^handle(Result, Timeout) ->$/;"	f	module:essh_receiver
+handle_call	src/essh_id_gen.erl	/^handle_call({get,Key}, _From, State) ->$/;"	f	module:essh_id_gen
+handle_call	src/essh_id_gen.erl	/^handle_call({next,Key}, _From, State) ->$/;"	f	module:essh_id_gen
+handle_cast	src/essh_id_gen.erl	/^handle_cast(_Request, State) ->$/;"	f	module:essh_id_gen
+handle_event	src/essh_client.erl	/^handle_event(Event, StateName, StateData) ->$/;"	f	module:essh_client
+handle_info	src/essh_client.erl	/^handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->$/;"	f	module:essh_client
+handle_info	src/essh_client.erl	/^handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,From,CbFunc},cmds=[NewData|Others]}) ->$/;"	f	module:essh_client
+handle_info	src/essh_client.erl	/^handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->$/;"	f	module:essh_client
+handle_info	src/essh_client.erl	/^handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->$/;"	f	module:essh_client
+handle_info	src/essh_id_gen.erl	/^handle_info(_Info, State) ->$/;"	f	module:essh_id_gen
+handle_sync_event	src/essh_client.erl	/^handle_sync_event(stop, _From, _StateName, StateData) ->$/;"	f	module:essh_client
+handle_sync_event	src/essh_client.erl	/^handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Host,port=Port,channel=ChannelId}) ->$/;"	f	module:essh_client
+handle_sync_event	src/essh_client.erl	/^handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, StateName, StateData=#data{cmds=Cmds}) ->$/;"	f	module:essh_client
+handle_sync_event	src/essh_client.erl	/^handle_sync_event({exec, {Id,Cmd,CbFunc}}, {Pid,_Tag}, normal, StateData=#data{current=undefined}) ->$/;"	f	module:essh_client
+host	test/basic_SUITE.erl	/^host()     -> "localhost".$/;"	f	module:basic_SUITE
+init	src/essh_client.erl	/^init([ChannelId,User,Host,Port]) ->$/;"	f	module:essh_client
+init	src/essh_client.erl	/^init([ChannelId,User,Host,undefined]) ->$/;"	f	module:essh_client
+init	src/essh_client_sup.erl	/^init([]) ->$/;"	f	module:essh_client_sup
+init	src/essh_id_gen.erl	/^init([]) ->$/;"	f	module:essh_id_gen
+init	src/essh_sup.erl	/^init([]) ->$/;"	f	module:essh_sup
+init_per_group	test/basic_SUITE.erl	/^init_per_group(_group, Config) ->$/;"	f	module:basic_SUITE
+init_per_suite	test/basic_SUITE.erl	/^init_per_suite(Config) ->$/;"	f	module:basic_SUITE
+init_per_testcase	test/basic_SUITE.erl	/^init_per_testcase(_TestCase, Config) ->$/;"	f	module:basic_SUITE
+loop	src/essh_receiver.erl	/^loop({Status,Data}, Result, Timeout) ->$/;"	f	module:essh_receiver
+merge_out	src/essh_store.erl	/^merge_out(CmdId,BinOuts) when is_integer(CmdId) ->$/;"	f	module:essh_store
+next	src/essh_id_gen.erl	/^next(Key) when is_atom(Key) ->$/;"	f	module:essh_id_gen
+options	src/essh_client.erl	/^options(Password, User) ->$/;"	f	module:essh_client
+passwd	test/basic_SUITE.erl	/^passwd() -> undefined.$/;"	f	module:basic_SUITE
+password	src/essh_client.erl	/^password(Password,  Options) -> [{password, Password}|Options].$/;"	f	module:essh_client
+password	src/essh_client.erl	/^password(undefined, Options) -> Options;$/;"	f	module:essh_client
+port	test/basic_SUITE.erl	/^port()     -> 22.$/;"	f	module:basic_SUITE
+randchar	src/essh_store.erl	/^randchar(0, Acc) ->$/;"	f	module:essh_store
+randchar	src/essh_store.erl	/^randchar(N) ->$/;"	f	module:essh_store
+randchar	src/essh_store.erl	/^randchar(N, Acc) ->$/;"	f	module:essh_store
+remove	src/essh.erl	/^remove(ChannelId, Token) ->$/;"	f	module:essh
+remove_channel	src/essh_store.erl	/^remove_channel(ChannelId, _Token) ->$/;"	f	module:essh_store
+result	src/essh.erl	/^result(ChannelId, Token, CmdId) ->$/;"	f	module:essh
+result	src/essh.erl	/^result(ChannelId, Token, CmdId) when is_binary(Token)->$/;"	f	module:essh
+result	src/essh_store.erl	/^result(CmdId) ->$/;"	f	module:essh_store
+run_once	src/essh_app.erl	/^run_once() ->$/;"	f	module:essh_app
+start	src/essh.erl	/^start() ->$/;"	f	module:essh
+start	src/essh_app.erl	/^start(_StartType, _StartArgs) ->$/;"	f	module:essh_app
+start_link	src/essh_client.erl	/^start_link(ChannelId, WhoAmI ) ->$/;"	f	module:essh_client
+start_link	src/essh_client_sup.erl	/^start_link() ->$/;"	f	module:essh_client_sup
+start_link	src/essh_id_gen.erl	/^start_link() ->$/;"	f	module:essh_id_gen
+start_link	src/essh_sup.erl	/^start_link() ->$/;"	f	module:essh_sup
+stop	src/essh.erl	/^stop() ->$/;"	f	module:essh
+stop	src/essh_app.erl	/^stop(_State) ->$/;"	f	module:essh_app
+stop	src/essh_client.erl	/^stop(ChannelId) ->$/;"	f	module:essh_client
+suite	test/basic_SUITE.erl	/^suite() -> [{timetrap, {seconds, 20}}].$/;"	f	module:basic_SUITE
+sync_exec	src/essh_client.erl	/^sync_exec(ChannelId, Command) ->$/;"	f	module:essh_client
+terminate	src/essh_client.erl	/^terminate(Reason, StateName, StateData) ->$/;"	f	module:essh_client
+terminate	src/essh_id_gen.erl	/^terminate(_Reason, _State) ->$/;"	f	module:essh_id_gen
+test_cmd_async	test/basic_SUITE.erl	/^test_cmd_async(_Config) ->$/;"	f	module:basic_SUITE
+test_cmd_callback	test/basic_SUITE.erl	/^test_cmd_callback(_Config) ->$/;"	f	module:basic_SUITE
+test_cmd_fail	test/basic_SUITE.erl	/^test_cmd_fail(_Config) ->$/;"	f	module:basic_SUITE
+test_cmd_sync	test/basic_SUITE.erl	/^test_cmd_sync(_Config) ->$/;"	f	module:basic_SUITE
+test_essh	test/basic_SUITE.erl	/^test_essh() ->$/;"	f	module:basic_SUITE
+test_exec_async	test/basic_SUITE.erl	/^test_exec_async(_Config) ->$/;"	f	module:basic_SUITE
+test_exec_sync	test/basic_SUITE.erl	/^test_exec_sync(_Config) ->$/;"	f	module:basic_SUITE
+update_command	src/essh_store.erl	/^update_command(CmdId, F) ->$/;"	f	module:essh_store
+user	src/essh_client.erl	/^user(User,      Options)     -> [{user, User}|Options].$/;"	f	module:essh_client
+user	src/essh_client.erl	/^user(undefined, Options)     -> Options;$/;"	f	module:essh_client
+user	test/basic_SUITE.erl	/^user()     -> undefined.$/;"	f	module:basic_SUITE
