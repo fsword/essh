@@ -17,7 +17,7 @@ stop() ->
 %% store channel - token pair
 %% the action is fail when connect fail
 create(User, Host, Port, Password) ->
-    create(User, Host, Port, Password, none).
+    create(User, Host, Port, Password, undefined).
 
 create(User, Host, Port, Password, Callback) ->
     Result = essh_client_sup:add_client([User,Host,Port],Password),
@@ -25,7 +25,7 @@ create(User, Host, Port, Password, Callback) ->
         {ok,ChannelId} ->
             Token = essh_store:add_channel(ChannelId),
             case Callback of
-                none -> {ok, ChannelId,Token};
+                undefined -> {ok, ChannelId,Token};
                 _    -> Callback(ChannelId, Token)
             end;
         Other ->
