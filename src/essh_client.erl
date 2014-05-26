@@ -76,32 +76,34 @@ handle_event(Event, StateName, StateData) ->
   {next_state, NewName, NewData}.
 
 handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,From,CbFunc},cmds=[NewData|Others]}) ->
-    error_logger:info_msg("next(~p,~p)~n", [Conn, Chl]),
+    error_logger:info_msg("ssh_cm: next(~p,~p)~n", [Conn, Chl]),
     fire_event(From, CbFunc, close),
     {NewId, NewCmd, NewFrom, NewCbFunc} = NewData,
     F = do_exec(NewId,NewCmd,Conn,NewCbFunc),
     {next_state, normal, StateData#data{cmds=Others,current={NewId,NewFrom,F},out=[]}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->
-    error_logger:info_msg("closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
+    error_logger:info_msg("ssh_cm: closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
     fire_event(From, CbFunc, close),
     {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
-    error_logger:info_msg("signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
+    error_logger:info_msg("ssh_cm: signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
 handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->
-    error_logger:info_msg("ssh_cm: ~p~n", [Info]),%%TODO remove
     NewOut = case Info of
                  %% ignore the difference of type code
                  %% because stdout/stderr are used in different tool by
                  %% the different way.
                  {data, _Chl, _Type_code, Data} ->
+                     error_logger:info_msg("ssh_cm: data ~ts~n", [Data]),%%TODO remove
                      fire_event(From, CbFunc, {data, Data}),
                      [Data|Out];
                  {exit_status, _Chl, ExitStatus} ->
+                     error_logger:info_msg("ssh_cm: ~p~n", [Info]),
                      fire_event(From, CbFunc, {exit, ExitStatus}),
                      essh_store:exit_status(Id, ExitStatus),
                      Out;
                  {eof,_Chl} ->
+                     error_logger:info_msg("ssh_cm: ~p~n", [Info]),
                      fire_event(From, CbFunc, eof),
                      essh_store:merge_out(Id,Out),
                      []
@@ -139,6 +141,7 @@ user(User,      Options)     -> [{user, User}|Options].
 do_exec(Id, Cmd, Conn, CbFunc) ->
   error_logger:info_msg("exec cmd in ~p~n",[Conn]),
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
+  ssh_connection:adjust_window(Conn, Chl, 100000000),
   error_logger:info_msg("create session in ~p~n",[Conn]),
   success = ssh_connection:exec(Conn,Chl,Cmd,infinity),
   case CbFunc of
