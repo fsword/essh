@@ -179,6 +179,10 @@ test_exec_sync(_Config) ->
     {ok, 0, _} = essh:exec("date && sleep 0.1 && echo finish", Id, Token),
     {ok, 0, _} = essh:exec("nohup date 2>&1 >/dev/null && date && sleep 0.05", Id, Token).
 
+test_exec_large_output(_Config) ->
+    {ok, Id, Token} = essh:create(user(),host(),port(),passwd()),
+    {ok, 0, _} = essh:exec("ruby -e '$stdout.sync=true; 100.times{puts $LOAD_PATH[0][0...10]*100}'", Id, Token, 20000).
+
 test_cmd_sync(_Config) ->
     Cmd="echo sync_ok && sleep 0.1 && echo finish",
     {ok, 0,<<"sync_ok\nfinish\n">>} = essh:cmd(Cmd,user(),host(),port(),passwd()).

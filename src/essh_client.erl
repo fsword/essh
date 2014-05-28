@@ -88,12 +88,13 @@ handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
     error_logger:info_msg("ssh_cm: signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
-handle_info({ssh_cm, _Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->
+handle_info({ssh_cm, Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->
     NewOut = case Info of
                  %% ignore the difference of type code
                  %% because stdout/stderr are used in different tool by
                  %% the different way.
-                 {data, _Chl, _Type_code, Data} ->
+                 {data, Chl, _Type_code, Data} ->
+                     ssh_connection:adjust_window(Conn, Chl, 100000),
                      error_logger:info_msg("ssh_cm: data ~ts~n", [Data]),%%TODO remove
                      fire_event(From, CbFunc, {data, Data}),
                      [Data|Out];
@@ -141,7 +142,6 @@ user(User,      Options)     -> [{user, User}|Options].
 do_exec(Id, Cmd, Conn, CbFunc) ->
   error_logger:info_msg("exec cmd in ~p~n",[Conn]),
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
-  ssh_connection:adjust_window(Conn, Chl, 100000000),
   error_logger:info_msg("create session in ~p~n",[Conn]),
   success = ssh_connection:exec(Conn,Chl,Cmd,infinity),
   case CbFunc of
