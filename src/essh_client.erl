@@ -22,7 +22,7 @@ connect(ChannelId, Password) ->
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), {connect, Password}).
 
 stop(ChannelId) ->
-  error_logger:info_msg("stop: ~p, ~p~n", [ChannelId]),
+  error_logger:info_report([{stop,ChannelId}]),
   gen_fsm:sync_send_all_state_event(?SERVER(ChannelId), stop).
 
 exec(ChannelId, Command, CbFunc) ->
@@ -42,7 +42,7 @@ sync_exec(ChannelId, Command) ->
 init([ChannelId,User,Host,undefined]) ->
   init([ChannelId,User,Host,22]);
 init([ChannelId,User,Host,Port]) ->
-  error_logger:info_msg("start link: ~p, ~p~n", [ChannelId, self()]),
+  error_logger:info_report([{start,ChannelId}, self()]),
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
@@ -50,10 +50,10 @@ handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Ho
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
     {ok, Conn} ->
-      error_logger:info_msg("connected:~p~n",[Conn]),
+      error_logger:info_report([{connect,ok},Conn]),
       {reply, {ok,ChannelId}, normal, StateData#data{conn=Conn}};
     {error, Reason} ->
-      error_logger:info_msg("error: ~p~n", [Reason]),
+      error_logger:info_report([{connect,error},Reason]),
       {stop, Reason, {error, Reason}, StateData}
   end;
 
@@ -76,17 +76,17 @@ handle_event(Event, StateName, StateData) ->
   {next_state, NewName, NewData}.
 
 handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,From,CbFunc},cmds=[NewData|Others]}) ->
-    error_logger:info_msg("ssh_cm: next(~p,~p)~n", [Conn, Chl]),
+    error_logger:info_report([{ssh_cm, closed},{conn,Conn},{chl,Chl},next]),
     fire_event(From, CbFunc, close),
     {NewId, NewCmd, NewFrom, NewCbFunc} = NewData,
     F = do_exec(NewId,NewCmd,Conn,NewCbFunc),
     {next_state, normal, StateData#data{cmds=Others,current={NewId,NewFrom,F},out=[]}};
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->
-    error_logger:info_msg("ssh_cm: closed(~p,~p) ~p ~n", [Conn, Chl, StateName]),
+    error_logger:info_report([{ssh_cm, closed},{conn,Conn},{chl,Chl},StateName]),
     fire_event(From, CbFunc, close),
     {next_state, StateName, StateData#data{current=undefined}};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
-    error_logger:info_msg("ssh_cm: signal(~p,~p) ~p ~p ~p ~p~n", [Conn, Chl, StateName, ExitSignal, ErrMsg, Lang]),
+    error_logger:info_report([{ssh_cm,signal},{conn,Conn},{chl,Chl}, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
 handle_info({ssh_cm, Conn, Info}, StateName, StateData=#data{current={Id,From,CbFunc},out=Out}) ->
     NewOut = case Info of
@@ -95,16 +95,16 @@ handle_info({ssh_cm, Conn, Info}, StateName, StateData=#data{current={Id,From,Cb
                  %% the different way.
                  {data, Chl, _Type_code, Data} ->
                      ssh_connection:adjust_window(Conn, Chl, 100000),
-                     error_logger:info_msg("ssh_cm: data ~ts~n", [Data]),%%TODO remove
+                     error_logger:info_report([{ssh_cm, data},{conn,Conn},{chl,Chl},Data]),%%TODO remove
                      fire_event(From, CbFunc, {data, Data}),
                      [Data|Out];
-                 {exit_status, _Chl, ExitStatus} ->
-                     error_logger:info_msg("ssh_cm: ~p~n", [Info]),
+                 {exit_status, Chl, ExitStatus} ->
+                     error_logger:info_report([{ssh_cm,exit_status},{conn,Conn},{chl,Chl},Info]),
                      fire_event(From, CbFunc, {exit, ExitStatus}),
                      essh_store:exit_status(Id, ExitStatus),
                      Out;
-                 {eof,_Chl} ->
-                     error_logger:info_msg("ssh_cm: ~p~n", [Info]),
+                 {eof,Chl} ->
+                     error_logger:info_report([{ssh_cm,eof},{conn,Conn},{chl,Chl},Info]),
                      fire_event(From, CbFunc, eof),
                      essh_store:merge_out(Id,Out),
                      []
@@ -115,7 +115,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
   {ok, StateName, StateData}.
 
 terminate(Reason, StateName, StateData) ->
-  error_logger:info_msg("terminate: ~p ~p ~p~n", [Reason,StateName,StateData]).
+  error_logger:info_report([{terminate,self()},Reason,StateName,StateData]).
 
 fire_event(From, CbFunc, Event) -> 
     fire_event(From, Event),
@@ -140,9 +140,8 @@ user(undefined, Options)     -> Options;
 user(User,      Options)     -> [{user, User}|Options].
 
 do_exec(Id, Cmd, Conn, CbFunc) ->
-  error_logger:info_msg("exec cmd in ~p~n",[Conn]),
   {ok, Chl} = ssh_connection:session_channel(Conn, infinity),
-  error_logger:info_msg("create session in ~p~n",[Conn]),
+  error_logger:info_report([{ssh_cm,create_session},{conn,Conn},{chl,Chl}]),
   success = ssh_connection:exec(Conn,Chl,Cmd,infinity),
   case CbFunc of
       undefined -> undefined;
@@ -150,5 +149,4 @@ do_exec(Id, Cmd, Conn, CbFunc) ->
           CbFunc(Id, add),
           fun(Event) -> CbFunc(Id, Event) end
   end.
-
 
