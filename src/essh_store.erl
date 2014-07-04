@@ -1,6 +1,7 @@
 -module(essh_store).
 
--export([add_command/0,merge_out/2,exit_status/2,result/1]).
+-export([add_command/0,update_out/2,update_exit_status/2]).
+-export([result/1,origin_result/1,merge/1]).
 -export([add_channel/1, check_channel/2, remove_channel/2]).
 -include("records.hrl").
 
@@ -9,16 +10,10 @@ add_command() ->
     mnesia:dirty_write(#command{id=Id}),
     Id.
 
-merge_out(CmdId,BinOuts) when is_integer(CmdId) ->
-    Out = lists:foldl(
-            fun(T, AccIn) -> <<AccIn/binary,T/binary>> end,
-            <<>>,
-            BinOuts
-           ),
-    update_command(CmdId, fun(Record) -> Record#command{out=Out} end),
-    Out.
+update_out(CmdId,BinOuts) when is_integer(CmdId) ->
+    update_command(CmdId, fun(Record) -> Record#command{out=BinOuts} end).
 
-exit_status(CmdId, Status) when is_integer(CmdId) ->
+update_exit_status(CmdId, Status) when is_integer(CmdId) ->
     update_command(CmdId, fun(Record) -> Record#command{status=Status} end).
 
 update_command(CmdId, F) ->
@@ -36,9 +31,27 @@ result(CmdId) ->
     case mnesia:dirty_read({command, CmdId}) of
         [] -> 
             not_found;
-        [#command{status=Status,out=Out}|_] -> 
+        [#command{status=Status,out=Out}|_] ->
+            io:format("output: ~ts", [Out]),
+            {ok, Status, merge(Out)}
+    end.
+
+origin_result(CmdId) ->
+    error_logger:info_msg("get result of CMD(~p)~n",[CmdId]),
+    case mnesia:dirty_read({command, CmdId}) of
+        [] -> 
+            not_found;
+        [#command{status=Status,out=Out}|_] ->
             {ok, Status, Out}
     end.
+
+merge(undefined) -> undefined;
+merge(BinOuts) ->
+    lists:foldl(
+      fun(T, AccIn) -> <<AccIn/binary,T/binary>> end,
+      <<>>,
+      BinOuts
+    ).
 
 add_channel(ChannelId) ->
     Token = randchar(12),

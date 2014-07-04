@@ -196,7 +196,7 @@ test_cmd_callback(_Config) ->
 test_cmd_async(_Config) ->
     Cmd="nohup date 2>&1 >/dev/null && echo async_ok && sleep 0.05",
     {ok, ChId, Token, CmdId} = essh:cmd(Cmd, user(),host(),port(),passwd(),async),
-    timer:sleep(200),
+    timer:sleep(500),
     {_, 0, <<"async_ok\n">>} = essh:result(ChId, Token, CmdId).
 
 test_cmd_fail(_Config) ->

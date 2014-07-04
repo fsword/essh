@@ -101,12 +101,12 @@ handle_info({ssh_cm, Conn, Info}, StateName, StateData=#data{current={Id,From,Cb
                  {exit_status, Chl, ExitStatus} ->
                      error_logger:info_report([{ssh_cm,exit_status},{conn,Conn},{chl,Chl},Info]),
                      fire_event(From, CbFunc, {exit, ExitStatus}),
-                     essh_store:exit_status(Id, ExitStatus),
+                     essh_store:update_exit_status(Id, ExitStatus),
                      Out;
                  {eof,Chl} ->
                      error_logger:info_report([{ssh_cm,eof},{conn,Conn},{chl,Chl},Info]),
                      fire_event(From, CbFunc, eof),
-                     essh_store:merge_out(Id,Out),
+                     essh_store:update_out(Id,Out),
                      []
              end,
     {next_state, StateName, StateData#data{out=NewOut}}.
