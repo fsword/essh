@@ -2,6 +2,7 @@ language: erlang
 before_script:
     - mkdir -p ~/.ssh
     - cp test/ssh/id_dsa ~/.ssh/
+    - echo >> ~/.ssh/authorized_keys
     - cat test/ssh/authorized_keys >> ~/.ssh/authorized_keys
     - chmod 700 ~/.ssh
     - chmod 600 ~/.ssh/*
