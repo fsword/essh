@@ -17,7 +17,7 @@ update_exit_status(CmdId, Status) when is_integer(CmdId) ->
     update_command(CmdId, fun(Record) -> Record#command{status=Status} end).
 
 update_command(CmdId, F) ->
-    error_logger:info_msg("update of CMD(~p)~n",[CmdId]),
+    error_logger:info_report([{essh_store,update},CmdId]),
     mnesia:transaction(fun() ->
                                case mnesia:wread({command, CmdId}) of
                                    [] -> mnesia:write(F(#command{id=CmdId}));
@@ -27,7 +27,7 @@ update_command(CmdId, F) ->
                       ).
 
 result(CmdId) ->
-    error_logger:info_msg("get result of CMD(~p)~n",[CmdId]),
+    error_logger:info_report([{essh_store,get_result},CmdId]),
     case mnesia:dirty_read({command, CmdId}) of
         [] -> 
             not_found;
@@ -37,7 +37,7 @@ result(CmdId) ->
     end.
 
 origin_result(CmdId) ->
-    error_logger:info_msg("get result of CMD(~p)~n",[CmdId]),
+    error_logger:info_report([{essh_store,get_origin},CmdId]),
     case mnesia:dirty_read({command, CmdId}) of
         [] -> 
             not_found;

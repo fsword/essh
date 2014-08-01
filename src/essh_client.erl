@@ -95,7 +95,6 @@ handle_info({ssh_cm, Conn, Info}, StateName, StateData=#data{current={Id,From,Cb
                  %% the different way.
                  {data, Chl, _Type_code, Data} ->
                      ssh_connection:adjust_window(Conn, Chl, 100000),
-                     error_logger:info_report([{ssh_cm, data},{conn,Conn},{chl,Chl},Data]),%%TODO remove
                      fire_event(From, CbFunc, {data, Data}),
                      [Data|Out];
                  {exit_status, Chl, ExitStatus} ->
