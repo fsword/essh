@@ -46,6 +46,9 @@ init([ChannelId,User,Host,Port]) ->
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
+normal(timeout, StateData=#data{conn=Conn}) when is_pid(Conn) ->
+    ssh:close(Conn),
+    {stop, normal, StateData};
 normal(timeout, StateData) ->
     {stop, normal, StateData}.
 
