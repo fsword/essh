@@ -2,7 +2,7 @@
 
 -behaviour(gen_fsm).
 
--export([start_link/2]).
+-export([start_link/2,normal/2]).
 -export([connect/2, exec/3, sync_exec/2, stop/1,fire_event/2]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3]).
 -export([code_change/4,terminate/3]).
@@ -46,6 +46,9 @@ init([ChannelId,User,Host,Port]) ->
   StateData = #data{user=User,host=Host,port=Port,channel=ChannelId},
   {ok, new, StateData}.
 
+normal(timeout, StateData) ->
+    {stop, normal, StateData}.
+
 handle_sync_event({connect,Password}, _From, _StateName, StateData=#data{host=Host,port=Port,channel=ChannelId}) ->
   Options = options(Password,StateData#data.user),
   case ssh:connect(Host, Port, Options) of
@@ -84,7 +87,7 @@ handle_info({ssh_cm, Conn, {closed,Chl}}, normal, StateData=#data{current={_,Fro
 handle_info({ssh_cm, Conn, {closed,Chl}}, StateName, StateData=#data{current={_,From,CbFunc}}) ->
     error_logger:info_report([{ssh_cm, closed},{conn,Conn},{chl,Chl},StateName]),
     fire_event(From, CbFunc, close),
-    {next_state, StateName, StateData#data{current=undefined}};
+    {next_state, StateName, StateData#data{current=undefined}, 10000};
 handle_info({ssh_cm, Conn, {exit_signal, Chl, ExitSignal, ErrMsg, Lang}}, StateName, StateData) ->
     error_logger:info_report([{ssh_cm,signal},{conn,Conn},{chl,Chl}, StateName, ExitSignal, ErrMsg, Lang]),
     {next_state, StateName, StateData};
