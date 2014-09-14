@@ -1,0 +1,18 @@
+---
+init:
+- echo '-s' >> .curlrc
+- curl https://raw.githubusercontent.com/spawngrid/kerl/master/kerl -o /usr/local/bin/kerl
+- chmod a+x /usr/local/bin/kerl
+- kerl update releases
+- kerl build R16B03-1 R16B03-1
+- kerl install R16B03-1 /opt/install/erlang/r16b03-1
+- echo 'source /opt/install/erlang/r16b03-1/activate' >> $HOME/.bashrc
+prepare:
+- mkdir -p ~/.ssh
+- cp test/ssh/id_dsa ~/.ssh/
+- echo >> ~/.ssh/authorized_keys
+- cat test/ssh/authorized_keys >> ~/.ssh/authorized_keys
+- chmod 700 ~/.ssh
+- chmod 600 ~/.ssh/*
+functional_test:
+- "./rebar compile ct"
