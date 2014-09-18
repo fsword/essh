@@ -1,13 +1,15 @@
 -module(essh_store).
 
 -export([add_command/0,update_out/2,update_exit_status/2]).
--export([result/1,origin_result/1,merge/1]).
+-export([result/1,origin_result/1,merge/1,cleanup/1,cleanup/2]).
 -export([add_channel/1, check_channel/2, remove_channel/2]).
 -include("records.hrl").
+-include_lib("stdlib/include/qlc.hrl").
 
 add_command() ->
     Id = essh_id_gen:next(command),
-    mnesia:dirty_write(#command{id=Id}),
+    {MegaS, S, _} = os:timestamp(),
+    mnesia:dirty_write(#command{id=Id,created_at=MegaS*1000000+S}),
     Id.
 
 update_out(CmdId,BinOuts) when is_integer(CmdId) ->
@@ -25,6 +27,22 @@ update_command(CmdId, F) ->
                                end
                        end
                       ).
+
+cleanup(Until) ->
+    cleanup({0,0,0}, Until).
+
+cleanup({FromMegaS,FromS,_}, {ToMegaS,ToS,_}) ->
+    FromSecond = FromMegaS * 1000000 + FromS,
+    ToSecond = ToMegaS * 1000000 + ToS,
+    F = fun() -> qlc:e(qlc:q([mnesia:delete({command,Id}) || 
+                              #command{
+                                 created_at=CreatedAt,
+                                 id=Id }<- mnesia:table(command), 
+                              CreatedAt > FromSecond,
+                              CreatedAt < ToSecond
+                             ]))
+        end,
+    mnesia:activity(transaction,F).
 
 result(CmdId) ->
     error_logger:info_report([{essh_store,get_result},CmdId]),

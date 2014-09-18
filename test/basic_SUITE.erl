@@ -187,6 +187,16 @@ test_cmd_sync(_Config) ->
     Cmd="echo sync_ok && sleep 0.1 && echo finish",
     {ok, 0,<<"sync_ok\nfinish\n">>} = essh:cmd(Cmd,user(),host(),port(),passwd()).
 
+test_cleanup(_Config) ->
+    timer:sleep(1000),
+    N = essh_id_gen:fetch(command),
+    N > 0,
+    essh_store:cleanup(os:timestamp()),
+    lists:map(fun(Id) -> 
+                      io:format("~p~n ",[Id]),
+                      not_found = essh_store:origin_result(Id) 
+              end, lists:seq(1,N)).
+
 test_cmd_callback(_Config) ->
     Cmd="echo sync_ok && sleep 0.1 && echo finish",
     Callback = fun(_Id,Event) -> error_logger:info_msg("callback: ~p~n",[Event]) end,

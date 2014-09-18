@@ -1,2 +1,2 @@
--record(command, {id, out, status}).
+-record(command, {id, out, status, created_at}).
 -record(channel, {id, token}).
