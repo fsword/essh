@@ -12,3 +12,4 @@ Mnesia*
 **/*.beam
 variables-ct*
 rel/essh*
+*.log
