@@ -1,5 +1,5 @@
 ---
-image: img-7a8f1hda
+image: img-mvipwe0y
 prepare:
 - mkdir -p ~/.ssh
 - cp test/ssh/id_dsa ~/.ssh/
